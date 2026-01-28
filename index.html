@@ -2,69 +2,87 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>中国象棋 - 在线对战</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html, body {
+            overflow-x: hidden;
+            touch-action: manipulation;
         }
         body {
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            min-height: -webkit-fill-available;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            font-family: 'Microsoft YaHei', 'SimHei', sans-serif;
+            font-family: 'Microsoft YaHei', 'SimHei', -apple-system, sans-serif;
         }
         .game-container {
             text-align: center;
-            padding: 20px;
+            padding: 10px;
+            width: 100%;
+            max-width: 600px;
         }
         h1 {
             color: #f4d03f;
-            margin-bottom: 10px;
-            font-size: 32px;
+            margin-bottom: 8px;
+            font-size: clamp(24px, 6vw, 32px);
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
         .status {
             color: #fff;
-            font-size: 20px;
-            margin-bottom: 10px;
-            min-height: 30px;
+            font-size: clamp(16px, 4vw, 20px);
+            margin-bottom: 8px;
+            min-height: 28px;
         }
         .player-info {
             color: #4ecca3;
-            font-size: 16px;
-            margin-bottom: 10px;
+            font-size: clamp(14px, 3.5vw, 16px);
+            margin-bottom: 8px;
         }
         .board-container {
             display: inline-block;
-            padding: 20px;
+            padding: clamp(8px, 2vw, 20px);
             background: #d4a056;
             border-radius: 10px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 100%;
+            overflow: hidden;
         }
         canvas {
             cursor: pointer;
+            touch-action: none;
+            max-width: 100%;
+            height: auto;
         }
         .controls {
-            margin-top: 20px;
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
         }
         button {
-            padding: 12px 30px;
-            font-size: 18px;
+            padding: 12px 20px;
+            font-size: clamp(14px, 3.5vw, 18px);
             background: #c0392b;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            margin: 5px 10px;
             font-family: inherit;
             transition: background 0.3s;
+            touch-action: manipulation;
+            min-height: 44px;
         }
-        button:hover {
+        button:hover, button:active {
             background: #e74c3c;
         }
         button:disabled {
@@ -73,33 +91,39 @@
         }
         .lobby {
             background: rgba(0,0,0,0.8);
-            padding: 40px;
+            padding: clamp(20px, 5vw, 40px);
             border-radius: 15px;
             max-width: 500px;
+            width: calc(100% - 20px);
+            margin: 0 auto;
         }
         .lobby h2 {
             color: #f4d03f;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            font-size: clamp(20px, 5vw, 28px);
         }
         .lobby p {
             color: #fff;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
+            font-size: clamp(14px, 3.5vw, 16px);
         }
         .lobby input {
-            padding: 12px 20px;
-            font-size: 18px;
+            padding: 12px 15px;
+            font-size: 16px;
             border: none;
             border-radius: 5px;
             width: 100%;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             text-align: center;
+            min-height: 44px;
         }
         .share-link {
             background: #2c3e50;
-            padding: 15px;
+            padding: 12px;
             border-radius: 5px;
-            margin: 15px 0;
+            margin: 12px 0;
             word-break: break-all;
+            font-size: clamp(12px, 3vw, 14px);
         }
         .share-link a {
             color: #3498db;
@@ -117,9 +141,10 @@
             position: fixed;
             top: 10px;
             right: 10px;
-            padding: 8px 15px;
+            padding: 6px 12px;
             border-radius: 20px;
-            font-size: 14px;
+            font-size: 12px;
+            z-index: 100;
         }
         .connected {
             background: #27ae60;
@@ -133,13 +158,31 @@
             display: none;
         }
         .copy-btn {
-            padding: 8px 20px;
-            font-size: 14px;
+            padding: 10px 20px;
+            font-size: clamp(14px, 3.5vw, 16px);
             background: #3498db;
-            margin-top: 10px;
         }
-        .copy-btn:hover {
+        .copy-btn:hover, .copy-btn:active {
             background: #2980b9;
+        }
+
+        /* Mobile-specific adjustments */
+        @media (max-width: 520px) {
+            .game-container {
+                padding: 5px;
+            }
+            .board-container {
+                padding: 5px;
+                border-radius: 8px;
+            }
+            .controls {
+                padding: 0 5px;
+            }
+            button {
+                padding: 10px 15px;
+                flex: 1 1 auto;
+                min-width: 80px;
+            }
         }
     </style>
 </head>
@@ -310,6 +353,7 @@
 
             initBoard();
             setupGameListeners();
+            resizeCanvas();
             drawBoard();
         }
 
@@ -492,10 +536,41 @@
             document.getElementById('soundBtn').textContent = soundEnabled ? '关闭音效' : '开启音效';
         }
 
-        const CELL_SIZE = 57;
-        const MARGIN = 30;
+        // Base dimensions (for scaling)
+        const BASE_WIDTH = 520;
+        const BASE_HEIGHT = 580;
+        const BASE_CELL_SIZE = 57;
+        const BASE_MARGIN = 30;
         const COLS = 9;
         const ROWS = 10;
+
+        // Dynamic scaling variables
+        let scale = 1;
+        let CELL_SIZE = BASE_CELL_SIZE;
+        let MARGIN = BASE_MARGIN;
+
+        function resizeCanvas() {
+            const container = document.querySelector('.board-container');
+            const maxWidth = Math.min(window.innerWidth - 30, 520);
+            scale = maxWidth / BASE_WIDTH;
+
+            canvas.style.width = (BASE_WIDTH * scale) + 'px';
+            canvas.style.height = (BASE_HEIGHT * scale) + 'px';
+
+            // Keep internal resolution for sharp rendering
+            canvas.width = BASE_WIDTH;
+            canvas.height = BASE_HEIGHT;
+
+            CELL_SIZE = BASE_CELL_SIZE;
+            MARGIN = BASE_MARGIN;
+
+            if (gameStarted) {
+                drawBoard();
+            }
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
 
         const EMPTY = 0;
         const R_GENERAL = 1, R_ADVISOR = 2, R_ELEPHANT = 3, R_HORSE = 4, R_CHARIOT = 5, R_CANNON = 6, R_SOLDIER = 7;
@@ -852,12 +927,15 @@
             return false;
         }
 
-        canvas.addEventListener('click', (e) => {
+        function handleInteraction(clientX, clientY) {
             if (gameOver || currentPlayer !== myColor || !gameStarted) return;
 
             const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            // Account for CSS scaling
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (clientX - rect.left) * scaleX;
+            const y = (clientY - rect.top) * scaleY;
 
             const col = Math.round((x - MARGIN) / CELL_SIZE);
             const row = Math.round((y - MARGIN) / CELL_SIZE);
@@ -934,7 +1012,24 @@
                 validMoves = [];
                 drawBoard();
             }
+        }
+
+        // Mouse click handler
+        canvas.addEventListener('click', (e) => {
+            handleInteraction(e.clientX, e.clientY);
         });
+
+        // Touch handler for mobile
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            handleInteraction(touch.clientX, touch.clientY);
+        }, { passive: false });
+
+        // Prevent scrolling when touching the canvas
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+        }, { passive: false });
     </script>
 </body>
 </html>
