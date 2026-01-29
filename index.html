@@ -463,6 +463,98 @@
             color: #fff;
         }
 
+        /* Open games lobby */
+        .open-games {
+            background: #2c3e50;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        .open-games h4 {
+            color: #4ecca3;
+            font-size: 14px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .open-games h4 .count {
+            background: #4ecca3;
+            color: #1a1a2e;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        .game-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #3a4a5c;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .game-item:hover {
+            background: #4a5a6c;
+            transform: translateX(5px);
+        }
+        .game-item:last-child {
+            margin-bottom: 0;
+        }
+        .game-item img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            margin-right: 12px;
+        }
+        .game-item-info {
+            flex: 1;
+            text-align: left;
+        }
+        .game-item-name {
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .game-item-time {
+            color: #888;
+            font-size: 12px;
+        }
+        .game-item-join {
+            background: #4ecca3;
+            color: #1a1a2e;
+            border: none;
+            padding: 6px 15px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .game-item-join:hover {
+            background: #5fd9b0;
+        }
+        .no-games {
+            color: #888;
+            font-size: 14px;
+            text-align: center;
+            padding: 20px;
+        }
+        .refresh-btn {
+            background: none;
+            border: none;
+            color: #4ecca3;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0;
+            margin-left: auto;
+        }
+        .refresh-btn:hover {
+            color: #5fd9b0;
+        }
+
         /* Game player names */
         .game-players {
             display: flex;
@@ -641,7 +733,20 @@
                 <!-- Online Mode Options -->
                 <div id="createSection" style="display: none;">
                     <button onclick="createGame()">创建新游戏</button>
-                    <p style="margin: 20px 0; color: #888;">- 或者 -</p>
+
+                    <!-- Open Games List -->
+                    <div class="open-games" id="openGames">
+                        <h4>
+                            <span>🎮 等待中的游戏</span>
+                            <span class="count" id="openGamesCount">0</span>
+                            <button class="refresh-btn" onclick="loadOpenGames()">🔄 刷新</button>
+                        </h4>
+                        <div id="openGamesList">
+                            <div class="no-games">暂无等待中的游戏</div>
+                        </div>
+                    </div>
+
+                    <p style="margin: 20px 0; color: #888;">- 或输入房间号 -</p>
                     <input type="text" id="joinRoomId" placeholder="输入房间号加入游戏">
                     <button onclick="joinGame()">加入游戏</button>
                 </div>
@@ -910,11 +1015,17 @@
                 const urlRoomId = urlParams.get('room');
                 if (urlRoomId) {
                     document.getElementById('joinRoomId').value = urlRoomId;
+                    selectMode('online');
                     joinGame();
                 }
             } else {
                 currentUser = null;
                 userProfile = null;
+                // Clean up open games listener
+                if (openGamesRef) {
+                    openGamesRef.off();
+                    openGamesRef = null;
+                }
                 document.getElementById('loginScreen').style.display = 'block';
                 document.getElementById('lobby').style.display = 'none';
             }
@@ -1112,6 +1223,116 @@
             document.getElementById('aiOptions').classList.toggle('show', mode === 'ai');
             document.getElementById('aiSection').style.display = mode === 'ai' ? 'block' : 'none';
             document.getElementById('createSection').style.display = mode === 'online' ? 'block' : 'none';
+
+            if (mode === 'online') {
+                loadOpenGames();
+            }
+        }
+
+        let openGamesRef = null;
+
+        function loadOpenGames() {
+            if (!db) return;
+
+            // Remove previous listener
+            if (openGamesRef) {
+                openGamesRef.off();
+            }
+
+            openGamesRef = db.ref('games').orderByChild('created').limitToLast(20);
+
+            openGamesRef.on('value', (snapshot) => {
+                const games = snapshot.val();
+                const listEl = document.getElementById('openGamesList');
+                const countEl = document.getElementById('openGamesCount');
+
+                if (!games) {
+                    listEl.innerHTML = '<div class="no-games">暂无等待中的游戏</div>';
+                    countEl.textContent = '0';
+                    return;
+                }
+
+                // Filter for games waiting for opponent (has redPlayer but no blackPlayer)
+                const openGames = Object.entries(games)
+                    .filter(([id, game]) => {
+                        return game.redPlayer &&
+                               !game.blackPlayer &&
+                               !game.gameOver &&
+                               // Don't show own games
+                               (currentUser && game.redPlayer.odule !== currentUser.uid);
+                    })
+                    .map(([id, game]) => ({ id, ...game }))
+                    .sort((a, b) => b.created - a.created);
+
+                countEl.textContent = openGames.length;
+
+                if (openGames.length === 0) {
+                    listEl.innerHTML = '<div class="no-games">暂无等待中的游戏</div>';
+                    return;
+                }
+
+                listEl.innerHTML = openGames.map(game => {
+                    const timeAgo = getTimeAgo(game.created);
+                    return `
+                        <div class="game-item" onclick="joinOpenGame('${game.id}')">
+                            <img src="${game.redPlayer.photoURL || 'https://via.placeholder.com/36'}" alt="">
+                            <div class="game-item-info">
+                                <div class="game-item-name">${game.redPlayer.displayName || '玩家'}</div>
+                                <div class="game-item-time">${timeAgo}</div>
+                            </div>
+                            <button class="game-item-join">加入</button>
+                        </div>
+                    `;
+                }).join('');
+            });
+        }
+
+        function getTimeAgo(timestamp) {
+            const seconds = Math.floor((Date.now() - timestamp) / 1000);
+            if (seconds < 60) return '刚刚';
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}分钟前`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}小时前`;
+            return '超过一天';
+        }
+
+        function joinOpenGame(gameId) {
+            if (!currentUser) {
+                alert('请先登录');
+                return;
+            }
+
+            roomId = gameId;
+            gameRef = db.ref('games/' + roomId);
+
+            gameRef.once('value').then((snapshot) => {
+                const game = snapshot.val();
+                if (!game) {
+                    alert('游戏已不存在');
+                    loadOpenGames();
+                    return;
+                }
+                if (game.blackPlayer) {
+                    alert('该游戏已被其他玩家加入');
+                    loadOpenGames();
+                    return;
+                }
+
+                myColor = 'black';
+                opponentProfile = game.redPlayer;
+                isAIGame = false;
+
+                gameRef.update({
+                    blackPlayer: {
+                        odule: currentUser.uid,
+                        displayName: userProfile.displayName,
+                        photoURL: userProfile.photoURL
+                    }
+                }).then(() => {
+                    startGame();
+                });
+            });
         }
 
         function cancelWaiting() {
@@ -1584,6 +1805,11 @@
             // Show appropriate section based on selected mode
             selectMode(selectedGameMode);
             document.getElementById('waitingSection').style.display = 'none';
+
+            // Reload open games list
+            if (selectedGameMode === 'online') {
+                loadOpenGames();
+            }
 
             // Clear URL params
             window.history.replaceState({}, document.title, window.location.pathname);
