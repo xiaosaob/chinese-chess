@@ -100,6 +100,15 @@
         .btn-google:hover {
             background: #357abd;
         }
+        .btn-guest {
+            background: #95a5a6;
+            display: block;
+            width: 100%;
+            margin: 10px auto;
+        }
+        .btn-guest:hover {
+            background: #7f8c8d;
+        }
         .btn-logout {
             background: #666;
             padding: 8px 15px;
@@ -335,6 +344,66 @@
         .forgot-password:hover {
             color: #3498db;
         }
+        .guest-prompt {
+            background: rgba(241, 196, 15, 0.2);
+            border: 1px solid #f1c40f;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        .guest-prompt p {
+            color: #f1c40f;
+            font-size: 13px;
+            margin: 0;
+        }
+        .guest-badge {
+            background: #95a5a6;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        .upgrade-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .upgrade-modal.show {
+            display: flex;
+        }
+        .upgrade-content {
+            background: #1a1a2e;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: calc(100% - 40px);
+            text-align: center;
+        }
+        .upgrade-content h3 {
+            color: #f4d03f;
+            margin-bottom: 15px;
+        }
+        .upgrade-content p {
+            color: #aaa;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .upgrade-content .auth-form {
+            text-align: left;
+        }
+        .close-modal {
+            background: #666;
+            margin-top: 10px;
+        }
 
         /* Game player names */
         .game-players {
@@ -432,6 +501,10 @@
                     使用 Google 登录
                 </button>
 
+                <button class="btn-guest" onclick="signInAsGuest()">
+                    游客模式
+                </button>
+
                 <div class="auth-divider"><span>或使用邮箱</span></div>
 
                 <div class="auth-form">
@@ -464,6 +537,10 @@
                     </div>
                 </div>
                 <button class="btn-logout" onclick="signOut()">登出</button>
+            </div>
+            <!-- Guest upgrade prompt -->
+            <div class="guest-prompt" id="guestPrompt" style="display: none;">
+                <p>游客数据将在登出后丢失，<span class="auth-toggle" onclick="showUpgradeModal()">点击升级账号</span>保存战绩</p>
             </div>
 
             <!-- Tabs -->
@@ -529,6 +606,21 @@
         </div>
     </div>
 
+    <!-- Upgrade Modal for Guests -->
+    <div class="upgrade-modal" id="upgradeModal">
+        <div class="upgrade-content">
+            <h3>升级账号</h3>
+            <p>关联邮箱以永久保存你的战绩</p>
+            <div class="auth-form">
+                <div class="auth-error" id="upgradeError"></div>
+                <input type="email" id="upgradeEmail" placeholder="邮箱地址">
+                <input type="password" id="upgradePassword" placeholder="设置密码 (至少6位)">
+                <button class="btn-email" onclick="upgradeGuestAccount()">升级账号</button>
+                <button class="close-modal" onclick="hideUpgradeModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -586,6 +678,15 @@
 
         function signOut() {
             auth.signOut();
+        }
+
+        async function signInAsGuest() {
+            try {
+                await auth.signInAnonymously();
+            } catch (error) {
+                console.error('Guest login error:', error);
+                showAuthError('游客登录失败: ' + getErrorMessage(error.code));
+            }
         }
 
         function toggleAuthMode() {
@@ -732,19 +833,24 @@
             const userRef = db.ref('users/' + user.uid);
             const snapshot = await userRef.once('value');
 
-            // Generate avatar for email users without photo
-            const photoURL = user.photoURL || generateAvatarUrl(user.displayName || user.email);
-            const displayName = user.displayName || user.email?.split('@')[0] || '玩家';
+            // Generate name and avatar for guests/email users
+            const isGuest = user.isAnonymous;
+            const guestName = '游客' + user.uid.substring(0, 4).toUpperCase();
+            const displayName = user.displayName || user.email?.split('@')[0] || guestName;
+            const photoURL = user.photoURL || generateAvatarUrl(displayName);
 
             if (snapshot.exists()) {
                 userProfile = snapshot.val();
-                // Update display name and photo in case they changed
+                // Keep existing name for guests if already set, otherwise update
+                const updatedName = isGuest && userProfile.displayName ? userProfile.displayName : displayName;
                 await userRef.update({
-                    displayName: displayName,
-                    photoURL: photoURL
+                    displayName: updatedName,
+                    photoURL: photoURL,
+                    isGuest: isGuest
                 });
-                userProfile.displayName = displayName;
+                userProfile.displayName = updatedName;
                 userProfile.photoURL = photoURL;
+                userProfile.isGuest = isGuest;
             } else {
                 userProfile = {
                     displayName: displayName,
@@ -753,6 +859,7 @@
                     losses: 0,
                     draws: 0,
                     gamesPlayed: 0,
+                    isGuest: isGuest,
                     createdAt: Date.now()
                 };
                 await userRef.set(userProfile);
@@ -762,10 +869,61 @@
         function updateProfileUI() {
             if (userProfile) {
                 document.getElementById('userAvatar').src = userProfile.photoURL || 'https://via.placeholder.com/50';
-                document.getElementById('userName').textContent = userProfile.displayName || '玩家';
+
+                const nameEl = document.getElementById('userName');
+                const guestPrompt = document.getElementById('guestPrompt');
+
+                if (userProfile.isGuest) {
+                    nameEl.innerHTML = (userProfile.displayName || '游客') + '<span class="guest-badge">游客</span>';
+                    guestPrompt.style.display = 'block';
+                } else {
+                    nameEl.textContent = userProfile.displayName || '玩家';
+                    guestPrompt.style.display = 'none';
+                }
+
                 document.getElementById('userWins').textContent = '胜: ' + (userProfile.wins || 0);
                 document.getElementById('userLosses').textContent = '负: ' + (userProfile.losses || 0);
                 document.getElementById('userDraws').textContent = '和: ' + (userProfile.draws || 0);
+            }
+        }
+
+        function showUpgradeModal() {
+            document.getElementById('upgradeModal').classList.add('show');
+            document.getElementById('upgradeError').style.display = 'none';
+        }
+
+        function hideUpgradeModal() {
+            document.getElementById('upgradeModal').classList.remove('show');
+        }
+
+        async function upgradeGuestAccount() {
+            const email = document.getElementById('upgradeEmail').value.trim();
+            const password = document.getElementById('upgradePassword').value;
+            const errorEl = document.getElementById('upgradeError');
+
+            errorEl.style.display = 'none';
+
+            if (!email || !password) {
+                errorEl.textContent = '请输入邮箱和密码';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            try {
+                const credential = firebase.auth.EmailAuthProvider.credential(email, password);
+                await currentUser.linkWithCredential(credential);
+
+                // Update profile
+                userProfile.isGuest = false;
+                await db.ref('users/' + currentUser.uid).update({ isGuest: false });
+
+                hideUpgradeModal();
+                updateProfileUI();
+                alert('账号升级成功！你的战绩已永久保存。');
+            } catch (error) {
+                console.error('Upgrade error:', error);
+                errorEl.textContent = getErrorMessage(error.code);
+                errorEl.style.display = 'block';
             }
         }
 
