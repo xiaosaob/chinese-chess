@@ -753,6 +753,9 @@
 
                 <div id="waitingSection" style="display: none;">
                     <p class="waiting">等待对手加入...</p>
+                    <p style="color: #f39c12; font-size: 14px; margin-bottom: 10px;">
+                        ⏱️ 房间将在 <span id="waitingCountdown">10:00</span> 后自动关闭
+                    </p>
                     <div class="share-link">
                         <p style="color: #888; font-size: 14px;">分享此链接给朋友:</p>
                         <a id="shareLink" href="#" target="_blank"></a>
@@ -1230,6 +1233,7 @@
         }
 
         let openGamesRef = null;
+        const GAME_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 
         function loadOpenGames() {
             if (!db) return;
@@ -1239,7 +1243,7 @@
                 openGamesRef.off();
             }
 
-            openGamesRef = db.ref('games').orderByChild('created').limitToLast(20);
+            openGamesRef = db.ref('games').orderByChild('created').limitToLast(50);
 
             openGamesRef.on('value', (snapshot) => {
                 const games = snapshot.val();
@@ -1252,17 +1256,40 @@
                     return;
                 }
 
+                const now = Date.now();
+
                 // Filter for games waiting for opponent (has redPlayer but no blackPlayer)
-                const openGames = Object.entries(games)
-                    .filter(([id, game]) => {
-                        return game.redPlayer &&
-                               !game.blackPlayer &&
-                               !game.gameOver &&
-                               // Don't show own games
-                               (currentUser && game.redPlayer.odule !== currentUser.uid);
-                    })
-                    .map(([id, game]) => ({ id, ...game }))
-                    .sort((a, b) => b.created - a.created);
+                // and clean up stale games
+                const openGames = [];
+                const staleGameIds = [];
+
+                Object.entries(games).forEach(([id, game]) => {
+                    const gameAge = now - game.created;
+                    const isStale = gameAge > GAME_TIMEOUT_MS;
+                    const isWaiting = game.redPlayer && !game.blackPlayer && !game.gameOver;
+
+                    // Mark stale waiting games for cleanup
+                    if (isWaiting && isStale) {
+                        staleGameIds.push(id);
+                        return;
+                    }
+
+                    // Add valid open games to list
+                    if (isWaiting && !isStale) {
+                        // Don't show own games
+                        if (currentUser && game.redPlayer.odule !== currentUser.uid) {
+                            openGames.push({ id, ...game });
+                        }
+                    }
+                });
+
+                // Clean up stale games
+                if (staleGameIds.length > 0) {
+                    cleanupStaleGames(staleGameIds);
+                }
+
+                // Sort by newest first
+                openGames.sort((a, b) => b.created - a.created);
 
                 countEl.textContent = openGames.length;
 
@@ -1287,14 +1314,22 @@
             });
         }
 
+        function cleanupStaleGames(gameIds) {
+            // Remove stale games from database
+            gameIds.forEach(id => {
+                db.ref('games/' + id).remove().catch(err => {
+                    console.log('Failed to cleanup game:', id, err);
+                });
+            });
+            console.log(`Cleaned up ${gameIds.length} stale games`);
+        }
+
         function getTimeAgo(timestamp) {
             const seconds = Math.floor((Date.now() - timestamp) / 1000);
-            if (seconds < 60) return '刚刚';
+            if (seconds < 60) return '刚刚创建';
             const minutes = Math.floor(seconds / 60);
-            if (minutes < 60) return `${minutes}分钟前`;
-            const hours = Math.floor(minutes / 60);
-            if (hours < 24) return `${hours}小时前`;
-            return '超过一天';
+            if (minutes < 10) return `${minutes}分钟前 · 剩余${10 - minutes}分钟`;
+            return '即将过期';
         }
 
         function joinOpenGame(gameId) {
@@ -1336,12 +1371,14 @@
         }
 
         function cancelWaiting() {
+            clearWaitingTimers();
             if (gameRef) {
                 gameRef.off();
                 gameRef.remove();
             }
             document.getElementById('createSection').style.display = 'block';
             document.getElementById('waitingSection').style.display = 'none';
+            loadOpenGames();
         }
 
         // ============================================
@@ -1566,6 +1603,9 @@
         // ============================================
         // ONLINE GAME LOGIC
         // ============================================
+        let waitingTimer = null;
+        let waitingCountdownInterval = null;
+
         function generateRoomId() {
             return Math.random().toString(36).substring(2, 8).toUpperCase();
         }
@@ -1578,6 +1618,7 @@
 
             roomId = generateRoomId();
             myColor = 'red';
+            isAIGame = false;
 
             gameRef = db.ref('games/' + roomId);
 
@@ -1607,14 +1648,71 @@
                 document.getElementById('shareLink').textContent = shareUrl;
                 document.getElementById('roomIdDisplay').textContent = roomId;
 
+                // Start countdown timer
+                startWaitingCountdown();
+
                 // Listen for opponent joining
                 gameRef.child('blackPlayer').on('value', (snapshot) => {
                     if (snapshot.val()) {
+                        // Clear timers
+                        clearWaitingTimers();
                         opponentProfile = snapshot.val();
                         startGame();
                     }
                 });
             });
+        }
+
+        function startWaitingCountdown() {
+            const startTime = Date.now();
+            const endTime = startTime + GAME_TIMEOUT_MS;
+
+            updateCountdownDisplay(GAME_TIMEOUT_MS);
+
+            waitingCountdownInterval = setInterval(() => {
+                const remaining = endTime - Date.now();
+                if (remaining <= 0) {
+                    clearWaitingTimers();
+                    autoCloseGame();
+                } else {
+                    updateCountdownDisplay(remaining);
+                }
+            }, 1000);
+        }
+
+        function updateCountdownDisplay(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            const display = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            const countdownEl = document.getElementById('waitingCountdown');
+            if (countdownEl) {
+                countdownEl.textContent = display;
+                // Change color when less than 2 minutes
+                countdownEl.style.color = totalSeconds < 120 ? '#e74c3c' : 'inherit';
+            }
+        }
+
+        function clearWaitingTimers() {
+            if (waitingTimer) {
+                clearTimeout(waitingTimer);
+                waitingTimer = null;
+            }
+            if (waitingCountdownInterval) {
+                clearInterval(waitingCountdownInterval);
+                waitingCountdownInterval = null;
+            }
+        }
+
+        function autoCloseGame() {
+            if (gameRef) {
+                gameRef.off();
+                gameRef.remove();
+            }
+            alert('等待超时，房间已自动关闭');
+            document.getElementById('createSection').style.display = 'block';
+            document.getElementById('waitingSection').style.display = 'none';
+            loadOpenGames();
         }
 
         function joinGame() {
