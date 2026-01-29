@@ -89,6 +89,22 @@
             background: #666;
             cursor: not-allowed;
         }
+        .btn-google {
+            background: #4285f4;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 0 auto 15px;
+        }
+        .btn-google:hover {
+            background: #357abd;
+        }
+        .btn-logout {
+            background: #666;
+            padding: 8px 15px;
+            font-size: 14px;
+        }
         .lobby {
             background: rgba(0,0,0,0.8);
             padding: clamp(20px, 5vw, 40px);
@@ -166,6 +182,150 @@
             background: #2980b9;
         }
 
+        /* User profile styles */
+        .user-profile {
+            background: #2c3e50;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            text-align: left;
+        }
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid #f4d03f;
+        }
+        .user-info {
+            flex: 1;
+        }
+        .user-name {
+            color: #f4d03f;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .user-stats {
+            color: #aaa;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .user-stats span {
+            margin-right: 10px;
+        }
+        .win { color: #27ae60; }
+        .loss { color: #c0392b; }
+        .draw { color: #f39c12; }
+
+        /* Leaderboard styles */
+        .leaderboard {
+            background: #2c3e50;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .leaderboard h3 {
+            color: #f4d03f;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #3a4a5c;
+            gap: 10px;
+        }
+        .leaderboard-item:last-child {
+            border-bottom: none;
+        }
+        .leaderboard-rank {
+            width: 30px;
+            font-weight: bold;
+            color: #f4d03f;
+        }
+        .leaderboard-rank.gold { color: #ffd700; }
+        .leaderboard-rank.silver { color: #c0c0c0; }
+        .leaderboard-rank.bronze { color: #cd7f32; }
+        .leaderboard-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+        }
+        .leaderboard-name {
+            flex: 1;
+            color: #fff;
+            font-size: 14px;
+        }
+        .leaderboard-score {
+            color: #4ecca3;
+            font-weight: bold;
+        }
+
+        /* Login screen */
+        .login-section {
+            text-align: center;
+        }
+        .login-section p {
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        /* Game player names */
+        .game-players {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 0 10px;
+        }
+        .game-player {
+            background: #2c3e50;
+            padding: 8px 15px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .game-player img {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+        }
+        .game-player.red { border: 2px solid #c41e3a; }
+        .game-player.black { border: 2px solid #333; }
+        .game-player.active {
+            box-shadow: 0 0 10px rgba(78, 204, 163, 0.8);
+            border-color: #4ecca3;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .tab {
+            flex: 1;
+            padding: 10px;
+            background: #3a4a5c;
+            color: #aaa;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            min-height: 40px;
+        }
+        .tab.active {
+            background: #4ecca3;
+            color: #1a1a2e;
+            font-weight: bold;
+        }
+
         /* Mobile-specific adjustments */
         @media (max-width: 520px) {
             .game-container {
@@ -183,6 +343,17 @@
                 flex: 1 1 auto;
                 min-width: 80px;
             }
+            .user-profile {
+                padding: 10px;
+            }
+            .user-avatar {
+                width: 40px;
+                height: 40px;
+            }
+            .game-players {
+                flex-direction: column;
+                gap: 5px;
+            }
         }
     </style>
 </head>
@@ -190,33 +361,87 @@
     <div class="connection-status disconnected" id="connectionStatus">未连接</div>
 
     <div class="game-container">
-        <!-- Lobby -->
-        <div class="lobby" id="lobby">
+        <!-- Login Screen -->
+        <div class="lobby" id="loginScreen">
             <h2>中国象棋 - 在线对战</h2>
-            <p>与朋友一起下棋!</p>
+            <div class="login-section">
+                <p>登录以保存你的战绩并与朋友对战</p>
+                <button class="btn-google" onclick="signInWithGoogle()">
+                    <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#fff" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#fff" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#fff" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#fff" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>
+                    使用 Google 登录
+                </button>
+            </div>
+        </div>
 
-            <div id="createSection">
-                <button onclick="createGame()">创建新游戏</button>
-                <p style="margin: 20px 0; color: #888;">- 或者 -</p>
-                <input type="text" id="joinRoomId" placeholder="输入房间号加入游戏">
-                <button onclick="joinGame()">加入游戏</button>
+        <!-- Lobby -->
+        <div class="lobby" id="lobby" style="display: none;">
+            <h2>中国象棋 - 在线对战</h2>
+
+            <!-- User Profile -->
+            <div class="user-profile" id="userProfile">
+                <img class="user-avatar" id="userAvatar" src="" alt="avatar">
+                <div class="user-info">
+                    <div class="user-name" id="userName">玩家</div>
+                    <div class="user-stats">
+                        <span class="win" id="userWins">胜: 0</span>
+                        <span class="loss" id="userLosses">负: 0</span>
+                        <span class="draw" id="userDraws">和: 0</span>
+                    </div>
+                </div>
+                <button class="btn-logout" onclick="signOut()">登出</button>
             </div>
 
-            <div id="waitingSection" style="display: none;">
-                <p class="waiting">等待对手加入...</p>
-                <div class="share-link">
-                    <p style="color: #888; font-size: 14px;">分享此链接给朋友:</p>
-                    <a id="shareLink" href="#" target="_blank"></a>
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('play')">开始游戏</button>
+                <button class="tab" onclick="showTab('leaderboard')">排行榜</button>
+            </div>
+
+            <!-- Play Tab -->
+            <div id="playTab">
+                <div id="createSection">
+                    <button onclick="createGame()">创建新游戏</button>
+                    <p style="margin: 20px 0; color: #888;">- 或者 -</p>
+                    <input type="text" id="joinRoomId" placeholder="输入房间号加入游戏">
+                    <button onclick="joinGame()">加入游戏</button>
                 </div>
-                <button class="copy-btn" onclick="copyLink()">复制链接</button>
-                <p style="margin-top: 15px; color: #888; font-size: 14px;">房间号: <span id="roomIdDisplay"></span></p>
+
+                <div id="waitingSection" style="display: none;">
+                    <p class="waiting">等待对手加入...</p>
+                    <div class="share-link">
+                        <p style="color: #888; font-size: 14px;">分享此链接给朋友:</p>
+                        <a id="shareLink" href="#" target="_blank"></a>
+                    </div>
+                    <button class="copy-btn" onclick="copyLink()">复制链接</button>
+                    <p style="margin-top: 15px; color: #888; font-size: 14px;">房间号: <span id="roomIdDisplay"></span></p>
+                    <button style="margin-top: 15px; background: #666;" onclick="cancelWaiting()">取消</button>
+                </div>
+            </div>
+
+            <!-- Leaderboard Tab -->
+            <div id="leaderboardTab" style="display: none;">
+                <div class="leaderboard" id="leaderboard">
+                    <h3>🏆 排行榜</h3>
+                    <div id="leaderboardList">
+                        <p style="color: #888; text-align: center;">加载中...</p>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- Game Area -->
         <div class="game-area" id="gameArea">
             <h1>中国象棋</h1>
-            <div class="player-info" id="playerInfo">你是: 红方</div>
+            <div class="game-players" id="gamePlayers">
+                <div class="game-player red" id="redPlayerInfo">
+                    <img src="" alt="">
+                    <span>红方</span>
+                </div>
+                <div class="game-player black" id="blackPlayerInfo">
+                    <img src="" alt="">
+                    <span>黑方</span>
+                </div>
+            </div>
             <div class="status" id="status">红方先行</div>
             <div class="board-container">
                 <canvas id="board" width="520" height="580"></canvas>
@@ -232,14 +457,12 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 
     <script>
         // ============================================
-        // FIREBASE CONFIGURATION - REPLACE WITH YOUR OWN
+        // FIREBASE CONFIGURATION
         // ============================================
-
-        // Your web app's Firebase configuration
-        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
         const firebaseConfig = {
             apiKey: "AIzaSyDsV1zjfCwYXoq6Ua3AZ4QVbLt1Sdgyd0Y",
             authDomain: "chinese-chess-9a981.firebaseapp.com",
@@ -253,14 +476,19 @@
 
         // Initialize Firebase
         let db = null;
+        let auth = null;
+        let currentUser = null;
+        let userProfile = null;
         let gameRef = null;
         let roomId = null;
         let myColor = null;
         let gameStarted = false;
+        let opponentProfile = null;
 
         try {
             firebase.initializeApp(firebaseConfig);
             db = firebase.database();
+            auth = firebase.auth();
             document.getElementById('connectionStatus').className = 'connection-status connected';
             document.getElementById('connectionStatus').textContent = '已连接';
         } catch (e) {
@@ -268,21 +496,187 @@
             alert('Firebase 配置错误，请检查配置信息');
         }
 
-        // Check URL for room ID
-        window.onload = function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const urlRoomId = urlParams.get('room');
-            if (urlRoomId) {
-                document.getElementById('joinRoomId').value = urlRoomId;
-                joinGame();
-            }
-        };
+        // ============================================
+        // AUTHENTICATION
+        // ============================================
+        function signInWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).catch((error) => {
+                console.error('Login error:', error);
+                alert('登录失败: ' + error.message);
+            });
+        }
 
+        function signOut() {
+            auth.signOut();
+        }
+
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                currentUser = user;
+                await loadOrCreateUserProfile(user);
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('lobby').style.display = 'block';
+                updateProfileUI();
+                loadLeaderboard();
+
+                // Check URL for room ID after login
+                const urlParams = new URLSearchParams(window.location.search);
+                const urlRoomId = urlParams.get('room');
+                if (urlRoomId) {
+                    document.getElementById('joinRoomId').value = urlRoomId;
+                    joinGame();
+                }
+            } else {
+                currentUser = null;
+                userProfile = null;
+                document.getElementById('loginScreen').style.display = 'block';
+                document.getElementById('lobby').style.display = 'none';
+            }
+        });
+
+        async function loadOrCreateUserProfile(user) {
+            const userRef = db.ref('users/' + user.uid);
+            const snapshot = await userRef.once('value');
+
+            if (snapshot.exists()) {
+                userProfile = snapshot.val();
+                // Update display name and photo in case they changed
+                await userRef.update({
+                    displayName: user.displayName,
+                    photoURL: user.photoURL
+                });
+                userProfile.displayName = user.displayName;
+                userProfile.photoURL = user.photoURL;
+            } else {
+                userProfile = {
+                    displayName: user.displayName,
+                    photoURL: user.photoURL,
+                    wins: 0,
+                    losses: 0,
+                    draws: 0,
+                    gamesPlayed: 0,
+                    createdAt: Date.now()
+                };
+                await userRef.set(userProfile);
+            }
+        }
+
+        function updateProfileUI() {
+            if (userProfile) {
+                document.getElementById('userAvatar').src = userProfile.photoURL || 'https://via.placeholder.com/50';
+                document.getElementById('userName').textContent = userProfile.displayName || '玩家';
+                document.getElementById('userWins').textContent = '胜: ' + (userProfile.wins || 0);
+                document.getElementById('userLosses').textContent = '负: ' + (userProfile.losses || 0);
+                document.getElementById('userDraws').textContent = '和: ' + (userProfile.draws || 0);
+            }
+        }
+
+        async function updateUserStats(result) {
+            if (!currentUser) return;
+
+            const userRef = db.ref('users/' + currentUser.uid);
+            const updates = {
+                gamesPlayed: (userProfile.gamesPlayed || 0) + 1
+            };
+
+            if (result === 'win') {
+                updates.wins = (userProfile.wins || 0) + 1;
+                userProfile.wins = updates.wins;
+            } else if (result === 'loss') {
+                updates.losses = (userProfile.losses || 0) + 1;
+                userProfile.losses = updates.losses;
+            } else if (result === 'draw') {
+                updates.draws = (userProfile.draws || 0) + 1;
+                userProfile.draws = updates.draws;
+            }
+
+            userProfile.gamesPlayed = updates.gamesPlayed;
+            await userRef.update(updates);
+            updateProfileUI();
+
+            // Update leaderboard
+            await updateLeaderboard();
+        }
+
+        async function updateLeaderboard() {
+            if (!currentUser || !userProfile) return;
+
+            const score = (userProfile.wins || 0) * 3 + (userProfile.draws || 0);
+            await db.ref('leaderboard/' + currentUser.uid).set({
+                displayName: userProfile.displayName,
+                photoURL: userProfile.photoURL,
+                wins: userProfile.wins || 0,
+                losses: userProfile.losses || 0,
+                draws: userProfile.draws || 0,
+                score: score
+            });
+        }
+
+        async function loadLeaderboard() {
+            const leaderboardRef = db.ref('leaderboard').orderByChild('score').limitToLast(20);
+            leaderboardRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                const list = document.getElementById('leaderboardList');
+
+                if (!data) {
+                    list.innerHTML = '<p style="color: #888; text-align: center;">暂无数据</p>';
+                    return;
+                }
+
+                // Convert to array and sort by score descending
+                const players = Object.entries(data)
+                    .map(([uid, player]) => ({ uid, ...player }))
+                    .sort((a, b) => b.score - a.score);
+
+                list.innerHTML = players.map((player, index) => {
+                    const rankClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : '';
+                    const isMe = currentUser && player.uid === currentUser.uid;
+                    return `
+                        <div class="leaderboard-item" style="${isMe ? 'background: rgba(78,204,163,0.2);' : ''}">
+                            <div class="leaderboard-rank ${rankClass}">${index + 1}</div>
+                            <img class="leaderboard-avatar" src="${player.photoURL || 'https://via.placeholder.com/30'}" alt="">
+                            <div class="leaderboard-name">${player.displayName || '玩家'}${isMe ? ' (你)' : ''}</div>
+                            <div class="leaderboard-score">${player.score}分</div>
+                        </div>
+                    `;
+                }).join('');
+            });
+        }
+
+        // ============================================
+        // UI HELPERS
+        // ============================================
+        function showTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.getElementById('playTab').style.display = tab === 'play' ? 'block' : 'none';
+            document.getElementById('leaderboardTab').style.display = tab === 'leaderboard' ? 'block' : 'none';
+        }
+
+        function cancelWaiting() {
+            if (gameRef) {
+                gameRef.off();
+                gameRef.remove();
+            }
+            document.getElementById('createSection').style.display = 'block';
+            document.getElementById('waitingSection').style.display = 'none';
+        }
+
+        // ============================================
+        // GAME LOGIC
+        // ============================================
         function generateRoomId() {
             return Math.random().toString(36).substring(2, 8).toUpperCase();
         }
 
         function createGame() {
+            if (!currentUser) {
+                alert('请先登录');
+                return;
+            }
+
             roomId = generateRoomId();
             myColor = 'red';
 
@@ -291,12 +685,17 @@
             const initialState = {
                 board: getInitialBoard(),
                 currentPlayer: 'red',
-                redPlayer: true,
-                blackPlayer: false,
+                redPlayer: {
+                    odule: currentUser.uid,
+                    displayName: userProfile.displayName,
+                    photoURL: userProfile.photoURL
+                },
+                blackPlayer: null,
                 lastMove: null,
                 gameOver: false,
                 winner: null,
                 rematchRequest: null,
+                statsUpdated: false,
                 created: Date.now()
             };
 
@@ -311,7 +710,8 @@
 
                 // Listen for opponent joining
                 gameRef.child('blackPlayer').on('value', (snapshot) => {
-                    if (snapshot.val() === true) {
+                    if (snapshot.val()) {
+                        opponentProfile = snapshot.val();
                         startGame();
                     }
                 });
@@ -319,6 +719,11 @@
         }
 
         function joinGame() {
+            if (!currentUser) {
+                alert('请先登录');
+                return;
+            }
+
             roomId = document.getElementById('joinRoomId').value.trim().toUpperCase();
             if (!roomId) {
                 alert('请输入房间号');
@@ -339,7 +744,15 @@
                 }
 
                 myColor = 'black';
-                gameRef.update({ blackPlayer: true }).then(() => {
+                opponentProfile = game.redPlayer;
+
+                gameRef.update({
+                    blackPlayer: {
+                        odule: currentUser.uid,
+                        displayName: userProfile.displayName,
+                        photoURL: userProfile.photoURL
+                    }
+                }).then(() => {
                     startGame();
                 });
             });
@@ -349,7 +762,6 @@
             gameStarted = true;
             document.getElementById('lobby').style.display = 'none';
             document.getElementById('gameArea').style.display = 'block';
-            document.getElementById('playerInfo').textContent = '你是: ' + (myColor === 'red' ? '红方' : '黑方');
 
             initBoard();
             setupGameListeners();
@@ -357,8 +769,30 @@
             drawBoard();
         }
 
+        function updatePlayerInfoUI(game) {
+            const redInfo = document.getElementById('redPlayerInfo');
+            const blackInfo = document.getElementById('blackPlayerInfo');
+
+            if (game.redPlayer) {
+                redInfo.innerHTML = `
+                    <img src="${game.redPlayer.photoURL || 'https://via.placeholder.com/24'}" alt="">
+                    <span>${game.redPlayer.displayName || '红方'}</span>
+                `;
+            }
+            if (game.blackPlayer) {
+                blackInfo.innerHTML = `
+                    <img src="${game.blackPlayer.photoURL || 'https://via.placeholder.com/24'}" alt="">
+                    <span>${game.blackPlayer.displayName || '黑方'}</span>
+                `;
+            }
+
+            // Highlight current player
+            redInfo.classList.toggle('active', game.currentPlayer === 'red' && !game.gameOver);
+            blackInfo.classList.toggle('active', game.currentPlayer === 'black' && !game.gameOver);
+        }
+
         function setupGameListeners() {
-            gameRef.on('value', (snapshot) => {
+            gameRef.on('value', async (snapshot) => {
                 const game = snapshot.val();
                 if (!game) {
                     alert('游戏已结束');
@@ -372,6 +806,8 @@
                 lastMove = game.lastMove;
                 gameOver = game.gameOver;
 
+                updatePlayerInfoUI(game);
+
                 if (game.lastMove && game.lastMoveBy !== myColor) {
                     // Opponent made a move - play sound
                     if (game.lastMoveWasCapture) {
@@ -384,15 +820,37 @@
                     }
                 }
 
-                // Update status
+                // Update status and stats
                 if (gameOver) {
                     document.getElementById('rematchBtn').style.display = 'inline-block';
-                    if (game.winner === myColor) {
-                        statusEl.textContent = '你赢了!';
-                        playSound('victory');
+
+                    // Update stats only once
+                    if (!game.statsUpdated) {
+                        if (game.winner === myColor) {
+                            statusEl.textContent = '你赢了!';
+                            playSound('victory');
+                            await updateUserStats('win');
+                        } else if (game.winner) {
+                            statusEl.textContent = '你输了!';
+                            playSound('defeat');
+                            await updateUserStats('loss');
+                        } else {
+                            statusEl.textContent = '和棋!';
+                            await updateUserStats('draw');
+                        }
+
+                        // Mark stats as updated (only one player should do this)
+                        if (myColor === 'red') {
+                            gameRef.update({ statsUpdated: true });
+                        }
                     } else {
-                        statusEl.textContent = '你输了!';
-                        playSound('defeat');
+                        if (game.winner === myColor) {
+                            statusEl.textContent = '你赢了!';
+                        } else if (game.winner) {
+                            statusEl.textContent = '你输了!';
+                        } else {
+                            statusEl.textContent = '和棋!';
+                        }
                     }
                 } else if (currentPlayer === myColor) {
                     statusEl.textContent = '轮到你走棋';
@@ -410,7 +868,8 @@
                             gameOver: false,
                             winner: null,
                             rematchRequest: null,
-                            inCheck: false
+                            inCheck: false,
+                            statsUpdated: false
                         });
                         document.getElementById('rematchBtn').style.display = 'none';
                     }
@@ -420,7 +879,8 @@
             });
 
             // Handle disconnection
-            gameRef.child(myColor === 'red' ? 'redPlayer' : 'blackPlayer').onDisconnect().set(false);
+            const playerPath = myColor === 'red' ? 'redPlayer' : 'blackPlayer';
+            gameRef.child(playerPath).onDisconnect().set(null);
         }
 
         function leaveGame() {
@@ -429,10 +889,21 @@
                 if (myColor === 'red') {
                     gameRef.remove();
                 } else {
-                    gameRef.update({ blackPlayer: false });
+                    gameRef.update({ blackPlayer: null });
                 }
             }
-            window.location.href = window.location.pathname;
+            gameStarted = false;
+            gameOver = false;
+            selectedPiece = null;
+            validMoves = [];
+            document.getElementById('rematchBtn').style.display = 'none';
+            document.getElementById('gameArea').style.display = 'none';
+            document.getElementById('lobby').style.display = 'block';
+            document.getElementById('createSection').style.display = 'block';
+            document.getElementById('waitingSection').style.display = 'none';
+
+            // Clear URL params
+            window.history.replaceState({}, document.title, window.location.pathname);
         }
 
         function requestRematch() {
@@ -448,7 +919,7 @@
         }
 
         // ============================================
-        // GAME LOGIC (adapted from single player version)
+        // GAME RENDERING & LOGIC
         // ============================================
 
         const canvas = document.getElementById('board');
@@ -550,14 +1021,12 @@
         let MARGIN = BASE_MARGIN;
 
         function resizeCanvas() {
-            const container = document.querySelector('.board-container');
             const maxWidth = Math.min(window.innerWidth - 30, 520);
             scale = maxWidth / BASE_WIDTH;
 
             canvas.style.width = (BASE_WIDTH * scale) + 'px';
             canvas.style.height = (BASE_HEIGHT * scale) + 'px';
 
-            // Keep internal resolution for sharp rendering
             canvas.width = BASE_WIDTH;
             canvas.height = BASE_HEIGHT;
 
@@ -673,7 +1142,6 @@
             ctx.fillText('楚 河', MARGIN + 1.5 * CELL_SIZE, MARGIN + 4.6 * CELL_SIZE);
             ctx.fillText('汉 界', MARGIN + 6.5 * CELL_SIZE, MARGIN + 4.6 * CELL_SIZE);
 
-            // Draw last move highlight
             if (lastMove) {
                 const fromX = MARGIN + lastMove.fromCol * CELL_SIZE;
                 const fromY = MARGIN + lastMove.fromRow * CELL_SIZE;
@@ -898,11 +1366,6 @@
             return captured;
         }
 
-        function undoMoveOnBoard(fromRow, fromCol, toRow, toCol, captured, boardState) {
-            boardState[fromRow][fromCol] = boardState[toRow][toCol];
-            boardState[toRow][toCol] = captured;
-        }
-
         function getLegalMoves(row, col, boardState = board) {
             const piece = boardState[row][col];
             const isRedPiece = isRed(piece);
@@ -931,7 +1394,6 @@
             if (gameOver || currentPlayer !== myColor || !gameStarted) return;
 
             const rect = canvas.getBoundingClientRect();
-            // Account for CSS scaling
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
             const x = (clientX - rect.left) * scaleX;
@@ -944,7 +1406,6 @@
 
             const clickedPiece = board[row][col];
 
-            // Check if clicking on a valid move
             const moveIndex = validMoves.findIndex(m => m.row === row && m.col === col);
             if (moveIndex !== -1 && selectedPiece) {
                 const captured = board[row][col];
@@ -971,7 +1432,6 @@
                     winner = myColor;
                 }
 
-                // Play local sound
                 if (captured !== EMPTY) {
                     playSound('capture');
                 } else {
@@ -984,7 +1444,6 @@
                     playSound('victory');
                 }
 
-                // Update Firebase
                 gameRef.update({
                     board: newBoard,
                     currentPlayer: nextPlayer,
@@ -1001,7 +1460,6 @@
                 return;
             }
 
-            // Select a piece
             if (isMyPiece(clickedPiece)) {
                 selectedPiece = { row, col };
                 validMoves = getLegalMoves(row, col);
@@ -1014,19 +1472,16 @@
             }
         }
 
-        // Mouse click handler
         canvas.addEventListener('click', (e) => {
             handleInteraction(e.clientX, e.clientY);
         });
 
-        // Touch handler for mobile
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             const touch = e.touches[0];
             handleInteraction(touch.clientX, touch.clientY);
         }, { passive: false });
 
-        // Prevent scrolling when touching the canvas
         canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
         }, { passive: false });
