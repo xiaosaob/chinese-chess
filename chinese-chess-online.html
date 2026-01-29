@@ -2,144 +2,104 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>中国象棋 - 在线对战</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-        html, body {
-            overflow-x: hidden;
-            touch-action: manipulation;
         }
         body {
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            min-height: -webkit-fill-available;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            font-family: 'Microsoft YaHei', 'SimHei', -apple-system, sans-serif;
+            font-family: 'Microsoft YaHei', 'SimHei', sans-serif;
         }
         .game-container {
             text-align: center;
-            padding: 10px;
-            width: 100%;
-            max-width: 600px;
+            padding: 20px;
         }
         h1 {
             color: #f4d03f;
-            margin-bottom: 8px;
-            font-size: clamp(24px, 6vw, 32px);
+            margin-bottom: 10px;
+            font-size: 32px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
         .status {
             color: #fff;
-            font-size: clamp(16px, 4vw, 20px);
-            margin-bottom: 8px;
-            min-height: 28px;
+            font-size: 20px;
+            margin-bottom: 10px;
+            min-height: 30px;
         }
         .player-info {
             color: #4ecca3;
-            font-size: clamp(14px, 3.5vw, 16px);
-            margin-bottom: 8px;
+            font-size: 16px;
+            margin-bottom: 10px;
         }
         .board-container {
             display: inline-block;
-            padding: clamp(8px, 2vw, 20px);
+            padding: 20px;
             background: #d4a056;
             border-radius: 10px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            max-width: 100%;
-            overflow: hidden;
         }
         canvas {
             cursor: pointer;
-            touch-action: none;
-            max-width: 100%;
-            height: auto;
         }
         .controls {
-            margin-top: 15px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 8px;
+            margin-top: 20px;
         }
         button {
-            padding: 12px 20px;
-            font-size: clamp(14px, 3.5vw, 18px);
+            padding: 12px 30px;
+            font-size: 18px;
             background: #c0392b;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            margin: 5px 10px;
             font-family: inherit;
             transition: background 0.3s;
-            touch-action: manipulation;
-            min-height: 44px;
         }
-        button:hover, button:active {
+        button:hover {
             background: #e74c3c;
         }
         button:disabled {
             background: #666;
             cursor: not-allowed;
         }
-        .btn-google {
-            background: #4285f4;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin: 0 auto 15px;
-        }
-        .btn-google:hover {
-            background: #357abd;
-        }
-        .btn-logout {
-            background: #666;
-            padding: 8px 15px;
-            font-size: 14px;
-        }
         .lobby {
             background: rgba(0,0,0,0.8);
-            padding: clamp(20px, 5vw, 40px);
+            padding: 40px;
             border-radius: 15px;
             max-width: 500px;
-            width: calc(100% - 20px);
-            margin: 0 auto;
         }
         .lobby h2 {
             color: #f4d03f;
-            margin-bottom: 15px;
-            font-size: clamp(20px, 5vw, 28px);
+            margin-bottom: 20px;
         }
         .lobby p {
             color: #fff;
-            margin-bottom: 12px;
-            font-size: clamp(14px, 3.5vw, 16px);
+            margin-bottom: 15px;
         }
         .lobby input {
-            padding: 12px 15px;
-            font-size: 16px;
+            padding: 12px 20px;
+            font-size: 18px;
             border: none;
             border-radius: 5px;
             width: 100%;
-            margin-bottom: 12px;
+            margin-bottom: 15px;
             text-align: center;
-            min-height: 44px;
         }
         .share-link {
             background: #2c3e50;
-            padding: 12px;
+            padding: 15px;
             border-radius: 5px;
-            margin: 12px 0;
+            margin: 15px 0;
             word-break: break-all;
-            font-size: clamp(12px, 3vw, 14px);
         }
         .share-link a {
             color: #3498db;
@@ -157,10 +117,9 @@
             position: fixed;
             top: 10px;
             right: 10px;
-            padding: 6px 12px;
+            padding: 8px 15px;
             border-radius: 20px;
-            font-size: 12px;
-            z-index: 100;
+            font-size: 14px;
         }
         .connected {
             background: #27ae60;
@@ -174,247 +133,13 @@
             display: none;
         }
         .copy-btn {
-            padding: 10px 20px;
-            font-size: clamp(14px, 3.5vw, 16px);
+            padding: 8px 20px;
+            font-size: 14px;
             background: #3498db;
+            margin-top: 10px;
         }
-        .copy-btn:hover, .copy-btn:active {
+        .copy-btn:hover {
             background: #2980b9;
-        }
-
-        /* User profile styles */
-        .user-profile {
-            background: #2c3e50;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            text-align: left;
-        }
-        .user-avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border: 2px solid #f4d03f;
-        }
-        .user-info {
-            flex: 1;
-        }
-        .user-name {
-            color: #f4d03f;
-            font-size: 18px;
-            font-weight: bold;
-        }
-        .user-stats {
-            color: #aaa;
-            font-size: 14px;
-            margin-top: 5px;
-        }
-        .user-stats span {
-            margin-right: 10px;
-        }
-        .win { color: #27ae60; }
-        .loss { color: #c0392b; }
-        .draw { color: #f39c12; }
-
-        /* Leaderboard styles */
-        .leaderboard {
-            background: #2c3e50;
-            border-radius: 10px;
-            padding: 15px;
-            margin-top: 20px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        .leaderboard h3 {
-            color: #f4d03f;
-            margin-bottom: 10px;
-            font-size: 18px;
-        }
-        .leaderboard-item {
-            display: flex;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #3a4a5c;
-            gap: 10px;
-        }
-        .leaderboard-item:last-child {
-            border-bottom: none;
-        }
-        .leaderboard-rank {
-            width: 30px;
-            font-weight: bold;
-            color: #f4d03f;
-        }
-        .leaderboard-rank.gold { color: #ffd700; }
-        .leaderboard-rank.silver { color: #c0c0c0; }
-        .leaderboard-rank.bronze { color: #cd7f32; }
-        .leaderboard-avatar {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-        }
-        .leaderboard-name {
-            flex: 1;
-            color: #fff;
-            font-size: 14px;
-        }
-        .leaderboard-score {
-            color: #4ecca3;
-            font-weight: bold;
-        }
-
-        /* Login screen */
-        .login-section {
-            text-align: center;
-        }
-        .login-section p {
-            color: #888;
-            margin-bottom: 20px;
-        }
-        .auth-divider {
-            display: flex;
-            align-items: center;
-            margin: 20px 0;
-            color: #666;
-        }
-        .auth-divider::before,
-        .auth-divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: #444;
-        }
-        .auth-divider span {
-            padding: 0 15px;
-            font-size: 14px;
-        }
-        .auth-form input {
-            width: 100%;
-            padding: 12px 15px;
-            margin-bottom: 10px;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            text-align: left;
-        }
-        .auth-form input::placeholder {
-            color: #999;
-        }
-        .btn-email {
-            background: #27ae60;
-            width: 100%;
-            margin-bottom: 10px;
-        }
-        .btn-email:hover {
-            background: #2ecc71;
-        }
-        .auth-toggle {
-            color: #3498db;
-            cursor: pointer;
-            font-size: 14px;
-            text-decoration: underline;
-        }
-        .auth-toggle:hover {
-            color: #5dade2;
-        }
-        .auth-error {
-            color: #e74c3c;
-            font-size: 14px;
-            margin-bottom: 10px;
-            display: none;
-        }
-        .forgot-password {
-            color: #888;
-            font-size: 13px;
-            cursor: pointer;
-            margin-top: 5px;
-        }
-        .forgot-password:hover {
-            color: #3498db;
-        }
-
-        /* Game player names */
-        .game-players {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding: 0 10px;
-        }
-        .game-player {
-            background: #2c3e50;
-            padding: 8px 15px;
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .game-player img {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-        }
-        .game-player.red { border: 2px solid #c41e3a; }
-        .game-player.black { border: 2px solid #333; }
-        .game-player.active {
-            box-shadow: 0 0 10px rgba(78, 204, 163, 0.8);
-            border-color: #4ecca3;
-        }
-
-        /* Tabs */
-        .tabs {
-            display: flex;
-            margin-bottom: 15px;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        .tab {
-            flex: 1;
-            padding: 10px;
-            background: #3a4a5c;
-            color: #aaa;
-            border: none;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 14px;
-            min-height: 40px;
-        }
-        .tab.active {
-            background: #4ecca3;
-            color: #1a1a2e;
-            font-weight: bold;
-        }
-
-        /* Mobile-specific adjustments */
-        @media (max-width: 520px) {
-            .game-container {
-                padding: 5px;
-            }
-            .board-container {
-                padding: 5px;
-                border-radius: 8px;
-            }
-            .controls {
-                padding: 0 5px;
-            }
-            button {
-                padding: 10px 15px;
-                flex: 1 1 auto;
-                min-width: 80px;
-            }
-            .user-profile {
-                padding: 10px;
-            }
-            .user-avatar {
-                width: 40px;
-                height: 40px;
-            }
-            .game-players {
-                flex-direction: column;
-                gap: 5px;
-            }
         }
     </style>
 </head>
@@ -422,101 +147,33 @@
     <div class="connection-status disconnected" id="connectionStatus">未连接</div>
 
     <div class="game-container">
-        <!-- Login Screen -->
-        <div class="lobby" id="loginScreen">
-            <h2>中国象棋 - 在线对战</h2>
-            <div class="login-section">
-                <p>登录以保存你的战绩并与朋友对战</p>
-                <button class="btn-google" onclick="signInWithGoogle()">
-                    <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#fff" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#fff" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#fff" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#fff" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>
-                    使用 Google 登录
-                </button>
-
-                <div class="auth-divider"><span>或使用邮箱</span></div>
-
-                <div class="auth-form">
-                    <div class="auth-error" id="authError"></div>
-                    <input type="text" id="displayNameInput" placeholder="昵称 (仅注册时需要)" style="display: none;">
-                    <input type="email" id="emailInput" placeholder="邮箱地址">
-                    <input type="password" id="passwordInput" placeholder="密码 (至少6位)">
-                    <button class="btn-email" id="authBtn" onclick="handleEmailAuth()">登录</button>
-                    <p>
-                        <span class="auth-toggle" id="authToggle" onclick="toggleAuthMode()">没有账号？点击注册</span>
-                    </p>
-                    <p class="forgot-password" onclick="handleForgotPassword()">忘记密码？</p>
-                </div>
-            </div>
-        </div>
-
         <!-- Lobby -->
-        <div class="lobby" id="lobby" style="display: none;">
+        <div class="lobby" id="lobby">
             <h2>中国象棋 - 在线对战</h2>
+            <p>与朋友一起下棋!</p>
 
-            <!-- User Profile -->
-            <div class="user-profile" id="userProfile">
-                <img class="user-avatar" id="userAvatar" src="" alt="avatar">
-                <div class="user-info">
-                    <div class="user-name" id="userName">玩家</div>
-                    <div class="user-stats">
-                        <span class="win" id="userWins">胜: 0</span>
-                        <span class="loss" id="userLosses">负: 0</span>
-                        <span class="draw" id="userDraws">和: 0</span>
-                    </div>
-                </div>
-                <button class="btn-logout" onclick="signOut()">登出</button>
+            <div id="createSection">
+                <button onclick="createGame()">创建新游戏</button>
+                <p style="margin: 20px 0; color: #888;">- 或者 -</p>
+                <input type="text" id="joinRoomId" placeholder="输入房间号加入游戏">
+                <button onclick="joinGame()">加入游戏</button>
             </div>
 
-            <!-- Tabs -->
-            <div class="tabs">
-                <button class="tab active" onclick="showTab('play')">开始游戏</button>
-                <button class="tab" onclick="showTab('leaderboard')">排行榜</button>
-            </div>
-
-            <!-- Play Tab -->
-            <div id="playTab">
-                <div id="createSection">
-                    <button onclick="createGame()">创建新游戏</button>
-                    <p style="margin: 20px 0; color: #888;">- 或者 -</p>
-                    <input type="text" id="joinRoomId" placeholder="输入房间号加入游戏">
-                    <button onclick="joinGame()">加入游戏</button>
+            <div id="waitingSection" style="display: none;">
+                <p class="waiting">等待对手加入...</p>
+                <div class="share-link">
+                    <p style="color: #888; font-size: 14px;">分享此链接给朋友:</p>
+                    <a id="shareLink" href="#" target="_blank"></a>
                 </div>
-
-                <div id="waitingSection" style="display: none;">
-                    <p class="waiting">等待对手加入...</p>
-                    <div class="share-link">
-                        <p style="color: #888; font-size: 14px;">分享此链接给朋友:</p>
-                        <a id="shareLink" href="#" target="_blank"></a>
-                    </div>
-                    <button class="copy-btn" onclick="copyLink()">复制链接</button>
-                    <p style="margin-top: 15px; color: #888; font-size: 14px;">房间号: <span id="roomIdDisplay"></span></p>
-                    <button style="margin-top: 15px; background: #666;" onclick="cancelWaiting()">取消</button>
-                </div>
-            </div>
-
-            <!-- Leaderboard Tab -->
-            <div id="leaderboardTab" style="display: none;">
-                <div class="leaderboard" id="leaderboard">
-                    <h3>🏆 排行榜</h3>
-                    <div id="leaderboardList">
-                        <p style="color: #888; text-align: center;">加载中...</p>
-                    </div>
-                </div>
+                <button class="copy-btn" onclick="copyLink()">复制链接</button>
+                <p style="margin-top: 15px; color: #888; font-size: 14px;">房间号: <span id="roomIdDisplay"></span></p>
             </div>
         </div>
 
         <!-- Game Area -->
         <div class="game-area" id="gameArea">
             <h1>中国象棋</h1>
-            <div class="game-players" id="gamePlayers">
-                <div class="game-player red" id="redPlayerInfo">
-                    <img src="" alt="">
-                    <span>红方</span>
-                </div>
-                <div class="game-player black" id="blackPlayerInfo">
-                    <img src="" alt="">
-                    <span>黑方</span>
-                </div>
-            </div>
+            <div class="player-info" id="playerInfo">你是: 红方</div>
             <div class="status" id="status">红方先行</div>
             <div class="board-container">
                 <canvas id="board" width="520" height="580"></canvas>
@@ -532,12 +189,14 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 
     <script>
         // ============================================
-        // FIREBASE CONFIGURATION
+        // FIREBASE CONFIGURATION - REPLACE WITH YOUR OWN
         // ============================================
+
+        // Your web app's Firebase configuration
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
         const firebaseConfig = {
             apiKey: "AIzaSyDsV1zjfCwYXoq6Ua3AZ4QVbLt1Sdgyd0Y",
             authDomain: "chinese-chess-9a981.firebaseapp.com",
@@ -551,19 +210,14 @@
 
         // Initialize Firebase
         let db = null;
-        let auth = null;
-        let currentUser = null;
-        let userProfile = null;
         let gameRef = null;
         let roomId = null;
         let myColor = null;
         let gameStarted = false;
-        let opponentProfile = null;
 
         try {
             firebase.initializeApp(firebaseConfig);
             db = firebase.database();
-            auth = firebase.auth();
             document.getElementById('connectionStatus').className = 'connection-status connected';
             document.getElementById('connectionStatus').textContent = '已连接';
         } catch (e) {
@@ -571,309 +225,21 @@
             alert('Firebase 配置错误，请检查配置信息');
         }
 
-        // ============================================
-        // AUTHENTICATION
-        // ============================================
-        let isSignUpMode = false;
-
-        function signInWithGoogle() {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).catch((error) => {
-                console.error('Login error:', error);
-                showAuthError('Google登录失败: ' + getErrorMessage(error.code));
-            });
-        }
-
-        function signOut() {
-            auth.signOut();
-        }
-
-        function toggleAuthMode() {
-            isSignUpMode = !isSignUpMode;
-            const btn = document.getElementById('authBtn');
-            const toggle = document.getElementById('authToggle');
-            const nameInput = document.getElementById('displayNameInput');
-
-            if (isSignUpMode) {
-                btn.textContent = '注册';
-                toggle.textContent = '已有账号？点击登录';
-                nameInput.style.display = 'block';
-            } else {
-                btn.textContent = '登录';
-                toggle.textContent = '没有账号？点击注册';
-                nameInput.style.display = 'none';
+        // Check URL for room ID
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlRoomId = urlParams.get('room');
+            if (urlRoomId) {
+                document.getElementById('joinRoomId').value = urlRoomId;
+                joinGame();
             }
-            hideAuthError();
-        }
+        };
 
-        function showAuthError(message) {
-            const errorEl = document.getElementById('authError');
-            errorEl.textContent = message;
-            errorEl.style.display = 'block';
-        }
-
-        function hideAuthError() {
-            document.getElementById('authError').style.display = 'none';
-        }
-
-        function getErrorMessage(code) {
-            const messages = {
-                'auth/email-already-in-use': '该邮箱已被注册',
-                'auth/invalid-email': '邮箱格式不正确',
-                'auth/operation-not-allowed': '邮箱登录未启用',
-                'auth/weak-password': '密码太弱，请至少使用6位字符',
-                'auth/user-disabled': '该账户已被禁用',
-                'auth/user-not-found': '用户不存在',
-                'auth/wrong-password': '密码错误',
-                'auth/invalid-credential': '邮箱或密码错误',
-                'auth/too-many-requests': '尝试次数过多，请稍后再试'
-            };
-            return messages[code] || '操作失败，请重试';
-        }
-
-        async function handleEmailAuth() {
-            const email = document.getElementById('emailInput').value.trim();
-            const password = document.getElementById('passwordInput').value;
-            const displayName = document.getElementById('displayNameInput').value.trim();
-
-            hideAuthError();
-
-            if (!email || !password) {
-                showAuthError('请输入邮箱和密码');
-                return;
-            }
-
-            if (isSignUpMode && !displayName) {
-                showAuthError('请输入昵称');
-                return;
-            }
-
-            try {
-                if (isSignUpMode) {
-                    // Sign up
-                    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                    // Update display name
-                    await userCredential.user.updateProfile({
-                        displayName: displayName,
-                        photoURL: generateAvatarUrl(displayName)
-                    });
-                    // Reload to get updated profile
-                    await userCredential.user.reload();
-                } else {
-                    // Sign in
-                    await auth.signInWithEmailAndPassword(email, password);
-                }
-            } catch (error) {
-                console.error('Auth error:', error);
-                showAuthError(getErrorMessage(error.code));
-            }
-        }
-
-        function generateAvatarUrl(name) {
-            // Generate a simple avatar using UI Avatars API
-            const encodedName = encodeURIComponent(name || 'Player');
-            return `https://ui-avatars.com/api/?name=${encodedName}&background=random&color=fff&size=100`;
-        }
-
-        async function handleForgotPassword() {
-            const email = document.getElementById('emailInput').value.trim();
-
-            if (!email) {
-                showAuthError('请先输入邮箱地址');
-                return;
-            }
-
-            try {
-                await auth.sendPasswordResetEmail(email);
-                alert('密码重置邮件已发送到 ' + email + '，请查收');
-            } catch (error) {
-                console.error('Password reset error:', error);
-                showAuthError(getErrorMessage(error.code));
-            }
-        }
-
-        // Handle Enter key in password field
-        document.addEventListener('DOMContentLoaded', () => {
-            const passwordInput = document.getElementById('passwordInput');
-            if (passwordInput) {
-                passwordInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        handleEmailAuth();
-                    }
-                });
-            }
-        });
-
-        auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                currentUser = user;
-                await loadOrCreateUserProfile(user);
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('lobby').style.display = 'block';
-                updateProfileUI();
-                loadLeaderboard();
-
-                // Check URL for room ID after login
-                const urlParams = new URLSearchParams(window.location.search);
-                const urlRoomId = urlParams.get('room');
-                if (urlRoomId) {
-                    document.getElementById('joinRoomId').value = urlRoomId;
-                    joinGame();
-                }
-            } else {
-                currentUser = null;
-                userProfile = null;
-                document.getElementById('loginScreen').style.display = 'block';
-                document.getElementById('lobby').style.display = 'none';
-            }
-        });
-
-        async function loadOrCreateUserProfile(user) {
-            const userRef = db.ref('users/' + user.uid);
-            const snapshot = await userRef.once('value');
-
-            // Generate avatar for email users without photo
-            const photoURL = user.photoURL || generateAvatarUrl(user.displayName || user.email);
-            const displayName = user.displayName || user.email?.split('@')[0] || '玩家';
-
-            if (snapshot.exists()) {
-                userProfile = snapshot.val();
-                // Update display name and photo in case they changed
-                await userRef.update({
-                    displayName: displayName,
-                    photoURL: photoURL
-                });
-                userProfile.displayName = displayName;
-                userProfile.photoURL = photoURL;
-            } else {
-                userProfile = {
-                    displayName: displayName,
-                    photoURL: photoURL,
-                    wins: 0,
-                    losses: 0,
-                    draws: 0,
-                    gamesPlayed: 0,
-                    createdAt: Date.now()
-                };
-                await userRef.set(userProfile);
-            }
-        }
-
-        function updateProfileUI() {
-            if (userProfile) {
-                document.getElementById('userAvatar').src = userProfile.photoURL || 'https://via.placeholder.com/50';
-                document.getElementById('userName').textContent = userProfile.displayName || '玩家';
-                document.getElementById('userWins').textContent = '胜: ' + (userProfile.wins || 0);
-                document.getElementById('userLosses').textContent = '负: ' + (userProfile.losses || 0);
-                document.getElementById('userDraws').textContent = '和: ' + (userProfile.draws || 0);
-            }
-        }
-
-        async function updateUserStats(result) {
-            if (!currentUser) return;
-
-            const userRef = db.ref('users/' + currentUser.uid);
-            const updates = {
-                gamesPlayed: (userProfile.gamesPlayed || 0) + 1
-            };
-
-            if (result === 'win') {
-                updates.wins = (userProfile.wins || 0) + 1;
-                userProfile.wins = updates.wins;
-            } else if (result === 'loss') {
-                updates.losses = (userProfile.losses || 0) + 1;
-                userProfile.losses = updates.losses;
-            } else if (result === 'draw') {
-                updates.draws = (userProfile.draws || 0) + 1;
-                userProfile.draws = updates.draws;
-            }
-
-            userProfile.gamesPlayed = updates.gamesPlayed;
-            await userRef.update(updates);
-            updateProfileUI();
-
-            // Update leaderboard
-            await updateLeaderboard();
-        }
-
-        async function updateLeaderboard() {
-            if (!currentUser || !userProfile) return;
-
-            const score = (userProfile.wins || 0) * 3 + (userProfile.draws || 0);
-            await db.ref('leaderboard/' + currentUser.uid).set({
-                displayName: userProfile.displayName,
-                photoURL: userProfile.photoURL,
-                wins: userProfile.wins || 0,
-                losses: userProfile.losses || 0,
-                draws: userProfile.draws || 0,
-                score: score
-            });
-        }
-
-        async function loadLeaderboard() {
-            const leaderboardRef = db.ref('leaderboard').orderByChild('score').limitToLast(20);
-            leaderboardRef.on('value', (snapshot) => {
-                const data = snapshot.val();
-                const list = document.getElementById('leaderboardList');
-
-                if (!data) {
-                    list.innerHTML = '<p style="color: #888; text-align: center;">暂无数据</p>';
-                    return;
-                }
-
-                // Convert to array and sort by score descending
-                const players = Object.entries(data)
-                    .map(([uid, player]) => ({ uid, ...player }))
-                    .sort((a, b) => b.score - a.score);
-
-                list.innerHTML = players.map((player, index) => {
-                    const rankClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : '';
-                    const isMe = currentUser && player.uid === currentUser.uid;
-                    return `
-                        <div class="leaderboard-item" style="${isMe ? 'background: rgba(78,204,163,0.2);' : ''}">
-                            <div class="leaderboard-rank ${rankClass}">${index + 1}</div>
-                            <img class="leaderboard-avatar" src="${player.photoURL || 'https://via.placeholder.com/30'}" alt="">
-                            <div class="leaderboard-name">${player.displayName || '玩家'}${isMe ? ' (你)' : ''}</div>
-                            <div class="leaderboard-score">${player.score}分</div>
-                        </div>
-                    `;
-                }).join('');
-            });
-        }
-
-        // ============================================
-        // UI HELPERS
-        // ============================================
-        function showTab(tab) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
-
-            document.getElementById('playTab').style.display = tab === 'play' ? 'block' : 'none';
-            document.getElementById('leaderboardTab').style.display = tab === 'leaderboard' ? 'block' : 'none';
-        }
-
-        function cancelWaiting() {
-            if (gameRef) {
-                gameRef.off();
-                gameRef.remove();
-            }
-            document.getElementById('createSection').style.display = 'block';
-            document.getElementById('waitingSection').style.display = 'none';
-        }
-
-        // ============================================
-        // GAME LOGIC
-        // ============================================
         function generateRoomId() {
             return Math.random().toString(36).substring(2, 8).toUpperCase();
         }
 
         function createGame() {
-            if (!currentUser) {
-                alert('请先登录');
-                return;
-            }
-
             roomId = generateRoomId();
             myColor = 'red';
 
@@ -882,17 +248,12 @@
             const initialState = {
                 board: getInitialBoard(),
                 currentPlayer: 'red',
-                redPlayer: {
-                    odule: currentUser.uid,
-                    displayName: userProfile.displayName,
-                    photoURL: userProfile.photoURL
-                },
-                blackPlayer: null,
+                redPlayer: true,
+                blackPlayer: false,
                 lastMove: null,
                 gameOver: false,
                 winner: null,
                 rematchRequest: null,
-                statsUpdated: false,
                 created: Date.now()
             };
 
@@ -907,8 +268,7 @@
 
                 // Listen for opponent joining
                 gameRef.child('blackPlayer').on('value', (snapshot) => {
-                    if (snapshot.val()) {
-                        opponentProfile = snapshot.val();
+                    if (snapshot.val() === true) {
                         startGame();
                     }
                 });
@@ -916,11 +276,6 @@
         }
 
         function joinGame() {
-            if (!currentUser) {
-                alert('请先登录');
-                return;
-            }
-
             roomId = document.getElementById('joinRoomId').value.trim().toUpperCase();
             if (!roomId) {
                 alert('请输入房间号');
@@ -941,15 +296,7 @@
                 }
 
                 myColor = 'black';
-                opponentProfile = game.redPlayer;
-
-                gameRef.update({
-                    blackPlayer: {
-                        odule: currentUser.uid,
-                        displayName: userProfile.displayName,
-                        photoURL: userProfile.photoURL
-                    }
-                }).then(() => {
+                gameRef.update({ blackPlayer: true }).then(() => {
                     startGame();
                 });
             });
@@ -959,37 +306,15 @@
             gameStarted = true;
             document.getElementById('lobby').style.display = 'none';
             document.getElementById('gameArea').style.display = 'block';
+            document.getElementById('playerInfo').textContent = '你是: ' + (myColor === 'red' ? '红方' : '黑方');
 
             initBoard();
             setupGameListeners();
-            resizeCanvas();
             drawBoard();
         }
 
-        function updatePlayerInfoUI(game) {
-            const redInfo = document.getElementById('redPlayerInfo');
-            const blackInfo = document.getElementById('blackPlayerInfo');
-
-            if (game.redPlayer) {
-                redInfo.innerHTML = `
-                    <img src="${game.redPlayer.photoURL || 'https://via.placeholder.com/24'}" alt="">
-                    <span>${game.redPlayer.displayName || '红方'}</span>
-                `;
-            }
-            if (game.blackPlayer) {
-                blackInfo.innerHTML = `
-                    <img src="${game.blackPlayer.photoURL || 'https://via.placeholder.com/24'}" alt="">
-                    <span>${game.blackPlayer.displayName || '黑方'}</span>
-                `;
-            }
-
-            // Highlight current player
-            redInfo.classList.toggle('active', game.currentPlayer === 'red' && !game.gameOver);
-            blackInfo.classList.toggle('active', game.currentPlayer === 'black' && !game.gameOver);
-        }
-
         function setupGameListeners() {
-            gameRef.on('value', async (snapshot) => {
+            gameRef.on('value', (snapshot) => {
                 const game = snapshot.val();
                 if (!game) {
                     alert('游戏已结束');
@@ -1003,8 +328,6 @@
                 lastMove = game.lastMove;
                 gameOver = game.gameOver;
 
-                updatePlayerInfoUI(game);
-
                 if (game.lastMove && game.lastMoveBy !== myColor) {
                     // Opponent made a move - play sound
                     if (game.lastMoveWasCapture) {
@@ -1017,37 +340,15 @@
                     }
                 }
 
-                // Update status and stats
+                // Update status
                 if (gameOver) {
                     document.getElementById('rematchBtn').style.display = 'inline-block';
-
-                    // Update stats only once
-                    if (!game.statsUpdated) {
-                        if (game.winner === myColor) {
-                            statusEl.textContent = '你赢了!';
-                            playSound('victory');
-                            await updateUserStats('win');
-                        } else if (game.winner) {
-                            statusEl.textContent = '你输了!';
-                            playSound('defeat');
-                            await updateUserStats('loss');
-                        } else {
-                            statusEl.textContent = '和棋!';
-                            await updateUserStats('draw');
-                        }
-
-                        // Mark stats as updated (only one player should do this)
-                        if (myColor === 'red') {
-                            gameRef.update({ statsUpdated: true });
-                        }
+                    if (game.winner === myColor) {
+                        statusEl.textContent = '你赢了!';
+                        playSound('victory');
                     } else {
-                        if (game.winner === myColor) {
-                            statusEl.textContent = '你赢了!';
-                        } else if (game.winner) {
-                            statusEl.textContent = '你输了!';
-                        } else {
-                            statusEl.textContent = '和棋!';
-                        }
+                        statusEl.textContent = '你输了!';
+                        playSound('defeat');
                     }
                 } else if (currentPlayer === myColor) {
                     statusEl.textContent = '轮到你走棋';
@@ -1065,8 +366,7 @@
                             gameOver: false,
                             winner: null,
                             rematchRequest: null,
-                            inCheck: false,
-                            statsUpdated: false
+                            inCheck: false
                         });
                         document.getElementById('rematchBtn').style.display = 'none';
                     }
@@ -1076,8 +376,7 @@
             });
 
             // Handle disconnection
-            const playerPath = myColor === 'red' ? 'redPlayer' : 'blackPlayer';
-            gameRef.child(playerPath).onDisconnect().set(null);
+            gameRef.child(myColor === 'red' ? 'redPlayer' : 'blackPlayer').onDisconnect().set(false);
         }
 
         function leaveGame() {
@@ -1086,21 +385,10 @@
                 if (myColor === 'red') {
                     gameRef.remove();
                 } else {
-                    gameRef.update({ blackPlayer: null });
+                    gameRef.update({ blackPlayer: false });
                 }
             }
-            gameStarted = false;
-            gameOver = false;
-            selectedPiece = null;
-            validMoves = [];
-            document.getElementById('rematchBtn').style.display = 'none';
-            document.getElementById('gameArea').style.display = 'none';
-            document.getElementById('lobby').style.display = 'block';
-            document.getElementById('createSection').style.display = 'block';
-            document.getElementById('waitingSection').style.display = 'none';
-
-            // Clear URL params
-            window.history.replaceState({}, document.title, window.location.pathname);
+            window.location.href = window.location.pathname;
         }
 
         function requestRematch() {
@@ -1116,7 +404,7 @@
         }
 
         // ============================================
-        // GAME RENDERING & LOGIC
+        // GAME LOGIC (adapted from single player version)
         // ============================================
 
         const canvas = document.getElementById('board');
@@ -1204,39 +492,10 @@
             document.getElementById('soundBtn').textContent = soundEnabled ? '关闭音效' : '开启音效';
         }
 
-        // Base dimensions (for scaling)
-        const BASE_WIDTH = 520;
-        const BASE_HEIGHT = 580;
-        const BASE_CELL_SIZE = 57;
-        const BASE_MARGIN = 30;
+        const CELL_SIZE = 57;
+        const MARGIN = 30;
         const COLS = 9;
         const ROWS = 10;
-
-        // Dynamic scaling variables
-        let scale = 1;
-        let CELL_SIZE = BASE_CELL_SIZE;
-        let MARGIN = BASE_MARGIN;
-
-        function resizeCanvas() {
-            const maxWidth = Math.min(window.innerWidth - 30, 520);
-            scale = maxWidth / BASE_WIDTH;
-
-            canvas.style.width = (BASE_WIDTH * scale) + 'px';
-            canvas.style.height = (BASE_HEIGHT * scale) + 'px';
-
-            canvas.width = BASE_WIDTH;
-            canvas.height = BASE_HEIGHT;
-
-            CELL_SIZE = BASE_CELL_SIZE;
-            MARGIN = BASE_MARGIN;
-
-            if (gameStarted) {
-                drawBoard();
-            }
-        }
-
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
 
         const EMPTY = 0;
         const R_GENERAL = 1, R_ADVISOR = 2, R_ELEPHANT = 3, R_HORSE = 4, R_CHARIOT = 5, R_CANNON = 6, R_SOLDIER = 7;
@@ -1339,6 +598,7 @@
             ctx.fillText('楚 河', MARGIN + 1.5 * CELL_SIZE, MARGIN + 4.6 * CELL_SIZE);
             ctx.fillText('汉 界', MARGIN + 6.5 * CELL_SIZE, MARGIN + 4.6 * CELL_SIZE);
 
+            // Draw last move highlight
             if (lastMove) {
                 const fromX = MARGIN + lastMove.fromCol * CELL_SIZE;
                 const fromY = MARGIN + lastMove.fromRow * CELL_SIZE;
@@ -1563,6 +823,11 @@
             return captured;
         }
 
+        function undoMoveOnBoard(fromRow, fromCol, toRow, toCol, captured, boardState) {
+            boardState[fromRow][fromCol] = boardState[toRow][toCol];
+            boardState[toRow][toCol] = captured;
+        }
+
         function getLegalMoves(row, col, boardState = board) {
             const piece = boardState[row][col];
             const isRedPiece = isRed(piece);
@@ -1587,14 +852,12 @@
             return false;
         }
 
-        function handleInteraction(clientX, clientY) {
+        canvas.addEventListener('click', (e) => {
             if (gameOver || currentPlayer !== myColor || !gameStarted) return;
 
             const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            const x = (clientX - rect.left) * scaleX;
-            const y = (clientY - rect.top) * scaleY;
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
 
             const col = Math.round((x - MARGIN) / CELL_SIZE);
             const row = Math.round((y - MARGIN) / CELL_SIZE);
@@ -1603,6 +866,7 @@
 
             const clickedPiece = board[row][col];
 
+            // Check if clicking on a valid move
             const moveIndex = validMoves.findIndex(m => m.row === row && m.col === col);
             if (moveIndex !== -1 && selectedPiece) {
                 const captured = board[row][col];
@@ -1629,6 +893,7 @@
                     winner = myColor;
                 }
 
+                // Play local sound
                 if (captured !== EMPTY) {
                     playSound('capture');
                 } else {
@@ -1641,6 +906,7 @@
                     playSound('victory');
                 }
 
+                // Update Firebase
                 gameRef.update({
                     board: newBoard,
                     currentPlayer: nextPlayer,
@@ -1657,6 +923,7 @@
                 return;
             }
 
+            // Select a piece
             if (isMyPiece(clickedPiece)) {
                 selectedPiece = { row, col };
                 validMoves = getLegalMoves(row, col);
@@ -1667,21 +934,7 @@
                 validMoves = [];
                 drawBoard();
             }
-        }
-
-        canvas.addEventListener('click', (e) => {
-            handleInteraction(e.clientX, e.clientY);
         });
-
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            handleInteraction(touch.clientX, touch.clientY);
-        }, { passive: false });
-
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-        }, { passive: false });
     </script>
 </body>
 </html>
