@@ -1728,6 +1728,7 @@
             gameStarted = true;
             gameOver = false;
             currentPlayer = 'red';
+            opponentJoined = true; // AI is always ready
 
             document.getElementById('lobby').style.display = 'none';
             document.getElementById('gameArea').style.display = 'block';
@@ -2145,6 +2146,7 @@
 
                 // Sync timer data from Firebase
                 const bothPlayersPresent = game.redPlayer && game.blackPlayer;
+                opponentJoined = bothPlayersPresent;
 
                 if (game.timeControl !== undefined) {
                     redTimeRemaining = game.redTimeRemaining || game.timeControl * 60 * 1000;
@@ -2314,6 +2316,7 @@
             gameOver = false;
             isAIGame = false;
             aiThinking = false;
+            opponentJoined = false;
             selectedPiece = null;
             validMoves = [];
             lastMove = null;
@@ -2849,7 +2852,12 @@
             return false;
         }
 
+        // Track if opponent has joined (for online games)
+        let opponentJoined = false;
+
         function handleInteraction(clientX, clientY) {
+            // Don't allow moves if waiting for opponent in online game
+            if (!isAIGame && !opponentJoined) return;
             if (gameOver || currentPlayer !== myColor || !gameStarted || aiThinking) return;
 
             const rect = canvas.getBoundingClientRect();
