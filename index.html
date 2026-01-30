@@ -1473,6 +1473,11 @@
                     loadOpenGames();
                     return;
                 }
+                // Prevent joining your own game
+                if (game.redPlayer && game.redPlayer.odule === currentUser.uid) {
+                    alert('不能加入自己创建的游戏');
+                    return;
+                }
 
                 myColor = 'black';
                 opponentProfile = game.redPlayer;
@@ -2092,6 +2097,46 @@
                     alert('房间不存在');
                     return;
                 }
+
+                // Check if user is the red player (creator) - resume as red
+                if (game.redPlayer && game.redPlayer.odule === currentUser.uid) {
+                    myColor = 'red';
+                    isAIGame = false;
+                    if (game.blackPlayer) {
+                        // Game already has opponent, resume game
+                        opponentProfile = game.blackPlayer;
+                        startGame();
+                    } else {
+                        // Still waiting for opponent, show waiting section
+                        document.getElementById('createSection').style.display = 'none';
+                        document.getElementById('waitingSection').style.display = 'block';
+                        const shareUrl = window.location.origin + window.location.pathname + '?room=' + roomId;
+                        document.getElementById('shareLink').href = shareUrl;
+                        document.getElementById('shareLink').textContent = shareUrl;
+                        document.getElementById('roomIdDisplay').textContent = roomId;
+                        startWaitingCountdown();
+                        // Listen for opponent joining
+                        gameRef.child('blackPlayer').on('value', (snapshot) => {
+                            if (snapshot.val()) {
+                                clearWaitingTimers();
+                                opponentProfile = snapshot.val();
+                                startGame();
+                            }
+                        });
+                    }
+                    return;
+                }
+
+                // Check if user is the black player - resume as black
+                if (game.blackPlayer && game.blackPlayer.odule === currentUser.uid) {
+                    myColor = 'black';
+                    isAIGame = false;
+                    opponentProfile = game.redPlayer;
+                    startGame();
+                    return;
+                }
+
+                // New player trying to join
                 if (game.blackPlayer) {
                     alert('房间已满');
                     return;
