@@ -1053,13 +1053,32 @@
             }
         });
 
+        // Generate fancy guest names related to Chinese chess and ancient China
+        function generateGuestName(uid) {
+            const titles = [
+                // Chess pieces
+                '将军', '士官', '象师', '车神', '马王', '炮手', '兵圣',
+                // Famous strategists and generals
+                '卧龙', '凤雏', '虎将', '龙骑', '白袍', '银枪', '金甲',
+                // Chess masters
+                '棋仙', '棋圣', '棋王', '棋侠', '棋魂', '棋神', '弈者',
+                // Ancient titles
+                '剑客', '谋士', '军师', '大将', '先锋', '护卫', '侠客',
+                // Mythical
+                '青龙', '白虎', '朱雀', '玄武', '麒麟', '凤凰', '神龙'
+            ];
+            // Use uid to pick a consistent name for this user
+            const index = parseInt(uid.substring(0, 8), 16) % titles.length;
+            return titles[index];
+        }
+
         async function loadOrCreateUserProfile(user) {
             const userRef = db.ref('users/' + user.uid);
             const snapshot = await userRef.once('value');
 
             // Generate name and avatar for guests/email users
             const isGuest = user.isAnonymous;
-            const guestName = '游客' + user.uid.substring(0, 4).toUpperCase();
+            const guestName = generateGuestName(user.uid);
             const displayName = user.displayName || user.email?.split('@')[0] || guestName;
             const photoURL = user.photoURL || generateAvatarUrl(displayName);
 
