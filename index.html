@@ -797,6 +797,7 @@
 
                 <!-- AI Mode Options (hidden by default) -->
                 <div class="difficulty-select" id="aiOptions" style="display: none;">
+                    <h3 style="color: #f4d03f; margin-bottom: 15px;">🤖 人机对战</h3>
                     <label>难度:</label>
                     <select id="aiDifficulty">
                         <option value="2">简单</option>
@@ -812,10 +813,12 @@
                         </div>
                     </div>
                     <button onclick="startAIGame()" style="margin-top: 15px;">开始游戏</button>
+                    <button onclick="goBackToModeSelection()" style="margin-top: 10px; background: #666;">返回</button>
                 </div>
 
                 <!-- Online Mode Options (hidden by default) -->
                 <div id="createSection" style="display: none;">
+                    <h3 style="color: #f4d03f; margin-bottom: 15px;">👥 在线对战</h3>
                     <div class="time-control">
                         <label>选择时间限制 (每方总用时)</label>
                         <div class="time-options">
@@ -841,6 +844,7 @@
                     <p style="margin: 20px 0; color: #888;">- 或输入房间号 -</p>
                     <input type="text" id="joinRoomId" placeholder="输入房间号加入游戏">
                     <button onclick="joinGame()">加入游戏</button>
+                    <button onclick="goBackToModeSelection()" style="margin-top: 10px; background: #666;">返回</button>
                 </div>
 
             </div>
@@ -1331,8 +1335,8 @@
         function selectMode(mode) {
             selectedGameMode = mode;
 
-            document.getElementById('modeAI').classList.toggle('selected', mode === 'ai');
-            document.getElementById('modeOnline').classList.toggle('selected', mode === 'online');
+            // Hide mode selection cards
+            document.getElementById('modeSelection').style.display = 'none';
 
             // Hide both sections first, then show the selected one
             document.getElementById('aiOptions').style.display = 'none';
@@ -1344,6 +1348,17 @@
                 document.getElementById('createSection').style.display = 'block';
                 loadOpenGames();
             }
+        }
+
+        function goBackToModeSelection() {
+            selectedGameMode = null;
+
+            // Show mode selection cards
+            document.getElementById('modeSelection').style.display = 'flex';
+
+            // Hide both option sections
+            document.getElementById('aiOptions').style.display = 'none';
+            document.getElementById('createSection').style.display = 'none';
         }
 
         let openGamesRef = null;
