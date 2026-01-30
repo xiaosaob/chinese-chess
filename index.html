@@ -542,6 +542,86 @@
             text-align: center;
             padding: 20px;
         }
+        /* Time control selection */
+        .time-control {
+            margin: 15px 0;
+        }
+        .time-control label {
+            color: #aaa;
+            font-size: 14px;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .time-options {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .time-option {
+            padding: 10px 20px;
+            background: #3a4a5c;
+            border: 2px solid #3a4a5c;
+            border-radius: 8px;
+            color: #aaa;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        .time-option:hover {
+            border-color: #4ecca3;
+        }
+        .time-option.selected {
+            border-color: #4ecca3;
+            background: rgba(78, 204, 163, 0.2);
+            color: #4ecca3;
+        }
+        /* Game timers display */
+        .game-timers {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 0 10px;
+        }
+        .player-timer {
+            background: #2c3e50;
+            padding: 8px 15px;
+            border-radius: 8px;
+            min-width: 120px;
+        }
+        .player-timer.active {
+            background: #27ae60;
+        }
+        .player-timer.warning {
+            background: #f39c12;
+        }
+        .player-timer.danger {
+            background: #c0392b;
+            animation: pulse 0.5s infinite;
+        }
+        .timer-label {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 4px;
+        }
+        .player-timer.active .timer-label,
+        .player-timer.warning .timer-label,
+        .player-timer.danger .timer-label {
+            color: rgba(255,255,255,0.8);
+        }
+        .timer-display {
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            font-family: monospace;
+        }
+        .move-timer {
+            font-size: 12px;
+            color: #f39c12;
+            margin-top: 4px;
+        }
+        .player-timer.danger .move-timer {
+            color: #fff;
+        }
         .refresh-btn {
             background: none;
             border: none;
@@ -723,6 +803,14 @@
                         <option value="3" selected>中等</option>
                         <option value="4">困难</option>
                     </select>
+                    <div class="time-control" style="margin-top: 15px;">
+                        <label>选择时间限制 (每方总用时)</label>
+                        <div class="time-options" id="aiTimeOptions">
+                            <div class="time-option" onclick="selectAITimeControl(5)">5分钟</div>
+                            <div class="time-option selected" onclick="selectAITimeControl(10)">10分钟</div>
+                            <div class="time-option" onclick="selectAITimeControl(20)">20分钟</div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Start AI Game Button -->
@@ -732,6 +820,14 @@
 
                 <!-- Online Mode Options -->
                 <div id="createSection" style="display: none;">
+                    <div class="time-control">
+                        <label>选择时间限制 (每方总用时)</label>
+                        <div class="time-options">
+                            <div class="time-option" onclick="selectTimeControl(5)">5分钟</div>
+                            <div class="time-option selected" onclick="selectTimeControl(10)">10分钟</div>
+                            <div class="time-option" onclick="selectTimeControl(20)">20分钟</div>
+                        </div>
+                    </div>
                     <button onclick="createGame()">创建新游戏</button>
 
                     <!-- Open Games List -->
@@ -780,6 +876,18 @@
         <!-- Game Area -->
         <div class="game-area" id="gameArea">
             <h1>中国象棋</h1>
+            <div class="game-timers" id="gameTimers">
+                <div class="player-timer" id="redTimer">
+                    <div class="timer-label">红方</div>
+                    <div class="timer-display" id="redTimeDisplay">10:00</div>
+                    <div class="move-timer" id="redMoveTimer"></div>
+                </div>
+                <div class="player-timer" id="blackTimer">
+                    <div class="timer-label">黑方</div>
+                    <div class="timer-display" id="blackTimeDisplay">10:00</div>
+                    <div class="move-timer" id="blackMoveTimer"></div>
+                </div>
+            </div>
             <div class="game-players" id="gamePlayers">
                 <div class="game-player red" id="redPlayerInfo">
                     <img src="" alt="">
@@ -850,6 +958,17 @@
         let isAIGame = false;
         let aiDepth = 3;
         let aiThinking = false;
+
+        // Timer variables
+        let selectedTimeControl = 10; // minutes
+        let redTimeRemaining = 0; // ms
+        let blackTimeRemaining = 0; // ms
+        let redMoveCount = 0;
+        let blackMoveCount = 0;
+        let currentMoveStartTime = 0;
+        let moveTimeLimit = 0; // ms
+        let gameTimerInterval = null;
+        let lastTimerUpdate = 0;
 
         try {
             firebase.initializeApp(firebaseConfig);
@@ -1300,12 +1419,13 @@
 
                 listEl.innerHTML = openGames.map(game => {
                     const timeAgo = getTimeAgo(game.created);
+                    const timeControl = game.timeControl || 10;
                     return `
                         <div class="game-item" onclick="joinOpenGame('${game.id}')">
                             <img src="${game.redPlayer.photoURL || 'https://via.placeholder.com/36'}" alt="">
                             <div class="game-item-info">
                                 <div class="game-item-name">${game.redPlayer.displayName || '玩家'}</div>
-                                <div class="game-item-time">${timeAgo}</div>
+                                <div class="game-item-time">${timeAgo} · ${timeControl}分钟</div>
                             </div>
                             <button class="game-item-join">加入</button>
                         </div>
@@ -1382,6 +1502,223 @@
         }
 
         // ============================================
+        // TIME CONTROL
+        // ============================================
+        let selectedAITimeControl = 10; // Default 10 minutes for AI games
+
+        function selectTimeControl(minutes) {
+            selectedTimeControl = minutes;
+            document.querySelectorAll('#createSection .time-option').forEach(el => {
+                el.classList.toggle('selected', el.textContent === minutes + '分钟');
+            });
+        }
+
+        function selectAITimeControl(minutes) {
+            selectedAITimeControl = minutes;
+            document.querySelectorAll('#aiTimeOptions .time-option').forEach(el => {
+                el.classList.toggle('selected', el.textContent === minutes + '分钟');
+            });
+        }
+
+        function getMoveTimeLimit(moveCount) {
+            // First 3 moves: 30 seconds, thereafter: 90 seconds
+            return moveCount < 3 ? 30000 : 90000;
+        }
+
+        function initializeTimers(timeControlMinutes) {
+            const totalTime = timeControlMinutes * 60 * 1000;
+            redTimeRemaining = totalTime;
+            blackTimeRemaining = totalTime;
+            redMoveCount = 0;
+            blackMoveCount = 0;
+            currentMoveStartTime = Date.now();
+            moveTimeLimit = getMoveTimeLimit(0);
+            lastTimerUpdate = Date.now();
+
+            updateTimerDisplay();
+            startGameTimer();
+        }
+
+        function startGameTimer() {
+            if (gameTimerInterval) {
+                clearInterval(gameTimerInterval);
+            }
+
+            gameTimerInterval = setInterval(() => {
+                if (gameOver || !gameStarted) {
+                    clearInterval(gameTimerInterval);
+                    return;
+                }
+
+                const now = Date.now();
+                const elapsed = now - lastTimerUpdate;
+                lastTimerUpdate = now;
+
+                if (isAIGame) {
+                    // AI game - track both timers locally
+                    if (currentPlayer === 'red') {
+                        redTimeRemaining -= elapsed;
+                        if (redTimeRemaining <= 0) {
+                            redTimeRemaining = 0;
+                            handleTimeout('red');
+                            return;
+                        }
+                    } else if (!aiThinking) {
+                        blackTimeRemaining -= elapsed;
+                        if (blackTimeRemaining <= 0) {
+                            blackTimeRemaining = 0;
+                            handleTimeout('black');
+                            return;
+                        }
+                    }
+                } else {
+                    // Online game - only track my own time when it's my turn
+                    if (currentPlayer === myColor) {
+                        if (myColor === 'red') {
+                            redTimeRemaining -= elapsed;
+                            if (redTimeRemaining <= 0) {
+                                redTimeRemaining = 0;
+                                handleTimeout('red');
+                                return;
+                            }
+                        } else {
+                            blackTimeRemaining -= elapsed;
+                            if (blackTimeRemaining <= 0) {
+                                blackTimeRemaining = 0;
+                                handleTimeout('black');
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                // Check move time limit (only for my turn)
+                const moveElapsed = now - currentMoveStartTime;
+                if (moveElapsed >= moveTimeLimit && currentPlayer === myColor && !aiThinking) {
+                    handleMoveTimeout();
+                    return;
+                }
+
+                updateTimerDisplay();
+            }, 100);
+        }
+
+        function updateTimerDisplay() {
+            const redDisplay = document.getElementById('redTimeDisplay');
+            const blackDisplay = document.getElementById('blackTimeDisplay');
+            const redTimerEl = document.getElementById('redTimer');
+            const blackTimerEl = document.getElementById('blackTimer');
+            const redMoveTimerEl = document.getElementById('redMoveTimer');
+            const blackMoveTimerEl = document.getElementById('blackMoveTimer');
+
+            if (!redDisplay || !blackDisplay) return;
+
+            redDisplay.textContent = formatTime(redTimeRemaining);
+            blackDisplay.textContent = formatTime(blackTimeRemaining);
+
+            // Update timer styling
+            redTimerEl.classList.remove('active', 'warning', 'danger');
+            blackTimerEl.classList.remove('active', 'warning', 'danger');
+
+            if (!gameOver) {
+                if (currentPlayer === 'red') {
+                    redTimerEl.classList.add(getTimerClass(redTimeRemaining));
+                    // Show move timer
+                    const moveRemaining = moveTimeLimit - (Date.now() - currentMoveStartTime);
+                    redMoveTimerEl.textContent = `本步剩余: ${Math.max(0, Math.ceil(moveRemaining / 1000))}秒`;
+                    blackMoveTimerEl.textContent = '';
+                } else {
+                    blackTimerEl.classList.add(getTimerClass(blackTimeRemaining));
+                    const moveRemaining = moveTimeLimit - (Date.now() - currentMoveStartTime);
+                    blackMoveTimerEl.textContent = isAIGame ? '' : `本步剩余: ${Math.max(0, Math.ceil(moveRemaining / 1000))}秒`;
+                    redMoveTimerEl.textContent = '';
+                }
+            } else {
+                redMoveTimerEl.textContent = '';
+                blackMoveTimerEl.textContent = '';
+            }
+        }
+
+        function getTimerClass(timeMs) {
+            if (timeMs <= 30000) return 'danger';
+            if (timeMs <= 60000) return 'warning';
+            return 'active';
+        }
+
+        function formatTime(ms) {
+            const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function resetMoveTimer() {
+            currentMoveStartTime = Date.now();
+            const moveCount = currentPlayer === 'red' ? redMoveCount : blackMoveCount;
+            moveTimeLimit = getMoveTimeLimit(moveCount);
+        }
+
+        function handleTimeout(player) {
+            if (gameOver) return;
+
+            gameOver = true;
+            clearInterval(gameTimerInterval);
+
+            const winner = player === 'red' ? 'black' : 'red';
+
+            if (isAIGame) {
+                if (player === 'red') {
+                    statusEl.textContent = '时间耗尽！你输了!';
+                    playSound('defeat');
+                    updateUserStats('loss');
+                } else {
+                    statusEl.textContent = 'AI超时！你赢了!';
+                    playSound('victory');
+                    updateUserStats('win');
+                }
+                document.getElementById('rematchBtn').style.display = 'inline-block';
+                updateTimerDisplay();
+                drawBoard();
+            } else {
+                // Online game - update Firebase
+                gameRef.update({
+                    gameOver: true,
+                    winner: winner,
+                    timeoutPlayer: player
+                });
+            }
+        }
+
+        function handleMoveTimeout() {
+            if (gameOver) return;
+
+            gameOver = true;
+            clearInterval(gameTimerInterval);
+
+            if (isAIGame) {
+                statusEl.textContent = '走棋超时！你输了!';
+                playSound('defeat');
+                updateUserStats('loss');
+                document.getElementById('rematchBtn').style.display = 'inline-block';
+                updateTimerDisplay();
+                drawBoard();
+            } else {
+                gameRef.update({
+                    gameOver: true,
+                    winner: myColor === 'red' ? 'black' : 'red',
+                    moveTimeoutPlayer: myColor
+                });
+            }
+        }
+
+        function stopGameTimer() {
+            if (gameTimerInterval) {
+                clearInterval(gameTimerInterval);
+                gameTimerInterval = null;
+            }
+        }
+
+        // ============================================
         // AI GAME LOGIC
         // ============================================
         const pieceValues = {
@@ -1419,6 +1756,9 @@
             resizeCanvas();
             updateAIGameUI();
             drawBoard();
+
+            // Initialize timers for AI game (10 minutes default)
+            initializeTimers(selectedAITimeControl);
         }
 
         function updateAIGameUI() {
@@ -1595,7 +1935,15 @@
                 }
 
                 aiThinking = false;
+
+                // Update timer after AI move
+                if (!gameOver) {
+                    blackMoveCount++;
+                    resetMoveTimer();
+                }
+
                 updateAIGameUI();
+                updateTimerDisplay();
                 drawBoard();
             }, 100);
         }
@@ -1622,6 +1970,7 @@
 
             gameRef = db.ref('games/' + roomId);
 
+            const totalTimeMs = selectedTimeControl * 60 * 1000;
             const initialState = {
                 board: getInitialBoard(),
                 currentPlayer: 'red',
@@ -1636,7 +1985,15 @@
                 winner: null,
                 rematchRequest: null,
                 statsUpdated: false,
-                created: Date.now()
+                created: Date.now(),
+                // Timer data
+                timeControl: selectedTimeControl,
+                redTimeRemaining: totalTimeMs,
+                blackTimeRemaining: totalTimeMs,
+                redMoveCount: 0,
+                blackMoveCount: 0,
+                lastMoveTime: null,
+                turnStartTime: null
             };
 
             gameRef.set(initialState).then(() => {
@@ -1789,6 +2146,8 @@
         }
 
         function setupGameListeners() {
+            let timerInitialized = false;
+
             gameRef.on('value', async (snapshot) => {
                 const game = snapshot.val();
                 if (!game) {
@@ -1802,6 +2161,32 @@
                 currentPlayer = game.currentPlayer;
                 lastMove = game.lastMove;
                 gameOver = game.gameOver;
+
+                // Sync timer data from Firebase
+                if (game.timeControl !== undefined) {
+                    redTimeRemaining = game.redTimeRemaining || game.timeControl * 60 * 1000;
+                    blackTimeRemaining = game.blackTimeRemaining || game.timeControl * 60 * 1000;
+                    redMoveCount = game.redMoveCount || 0;
+                    blackMoveCount = game.blackMoveCount || 0;
+
+                    // Initialize timer on first load
+                    if (!timerInitialized && !gameOver) {
+                        timerInitialized = true;
+                        selectedTimeControl = game.timeControl;
+                        currentMoveStartTime = game.turnStartTime || Date.now();
+                        moveTimeLimit = getMoveTimeLimit(currentPlayer === 'red' ? redMoveCount : blackMoveCount);
+                        lastTimerUpdate = Date.now();
+                        startGameTimer();
+                    }
+
+                    // Reset move timer when opponent makes a move
+                    if (game.lastMoveBy && game.lastMoveBy !== myColor && game.turnStartTime) {
+                        currentMoveStartTime = game.turnStartTime;
+                        moveTimeLimit = getMoveTimeLimit(currentPlayer === 'red' ? redMoveCount : blackMoveCount);
+                    }
+
+                    updateTimerDisplay();
+                }
 
                 updatePlayerInfoUI(game);
 
@@ -1819,16 +2204,36 @@
 
                 // Update status and stats
                 if (gameOver) {
+                    stopGameTimer();
                     document.getElementById('rematchBtn').style.display = 'inline-block';
+
+                    // Show timeout message if applicable
+                    if (game.timeoutPlayer) {
+                        if (game.timeoutPlayer === myColor) {
+                            statusEl.textContent = '时间耗尽！你输了!';
+                        } else {
+                            statusEl.textContent = '对手时间耗尽！你赢了!';
+                        }
+                    } else if (game.moveTimeoutPlayer) {
+                        if (game.moveTimeoutPlayer === myColor) {
+                            statusEl.textContent = '走棋超时！你输了!';
+                        } else {
+                            statusEl.textContent = '对手走棋超时！你赢了!';
+                        }
+                    }
 
                     // Update stats only once
                     if (!game.statsUpdated) {
                         if (game.winner === myColor) {
-                            statusEl.textContent = '你赢了!';
+                            if (!game.timeoutPlayer && !game.moveTimeoutPlayer) {
+                                statusEl.textContent = '你赢了!';
+                            }
                             playSound('victory');
                             await updateUserStats('win');
                         } else if (game.winner) {
-                            statusEl.textContent = '你输了!';
+                            if (!game.timeoutPlayer && !game.moveTimeoutPlayer) {
+                                statusEl.textContent = '你输了!';
+                            }
                             playSound('defeat');
                             await updateUserStats('loss');
                         } else {
@@ -1841,12 +2246,14 @@
                             gameRef.update({ statsUpdated: true });
                         }
                     } else {
-                        if (game.winner === myColor) {
-                            statusEl.textContent = '你赢了!';
-                        } else if (game.winner) {
-                            statusEl.textContent = '你输了!';
-                        } else {
-                            statusEl.textContent = '和棋!';
+                        if (!game.timeoutPlayer && !game.moveTimeoutPlayer) {
+                            if (game.winner === myColor) {
+                                statusEl.textContent = '你赢了!';
+                            } else if (game.winner) {
+                                statusEl.textContent = '你输了!';
+                            } else {
+                                statusEl.textContent = '和棋!';
+                            }
                         }
                     }
                 } else if (currentPlayer === myColor) {
@@ -1858,6 +2265,7 @@
                 // Handle rematch request
                 if (game.rematchRequest && game.rematchRequest !== myColor) {
                     if (confirm('对手请求再来一局，是否同意？')) {
+                        const totalTimeMs = (game.timeControl || 10) * 60 * 1000;
                         gameRef.update({
                             board: getInitialBoard(),
                             currentPlayer: 'red',
@@ -1866,9 +2274,18 @@
                             winner: null,
                             rematchRequest: null,
                             inCheck: false,
-                            statsUpdated: false
+                            statsUpdated: false,
+                            // Reset timer data
+                            redTimeRemaining: totalTimeMs,
+                            blackTimeRemaining: totalTimeMs,
+                            redMoveCount: 0,
+                            blackMoveCount: 0,
+                            turnStartTime: Date.now(),
+                            timeoutPlayer: null,
+                            moveTimeoutPlayer: null
                         });
                         document.getElementById('rematchBtn').style.display = 'none';
+                        timerInitialized = false;
                     }
                 }
 
@@ -1881,6 +2298,9 @@
         }
 
         function leaveGame() {
+            // Stop game timer
+            stopGameTimer();
+
             if (!isAIGame && gameRef) {
                 gameRef.off();
                 if (myColor === 'red') {
@@ -1896,6 +2316,13 @@
             selectedPiece = null;
             validMoves = [];
             lastMove = null;
+
+            // Reset timer variables
+            redTimeRemaining = 0;
+            blackTimeRemaining = 0;
+            redMoveCount = 0;
+            blackMoveCount = 0;
+
             document.getElementById('rematchBtn').style.display = 'none';
             document.getElementById('gameArea').style.display = 'none';
             document.getElementById('lobby').style.display = 'block';
@@ -1923,6 +2350,10 @@
                 lastMove = null;
                 initBoard();
                 document.getElementById('rematchBtn').style.display = 'none';
+
+                // Reset timers for new game
+                initializeTimers(selectedAITimeControl);
+
                 updateAIGameUI();
                 drawBoard();
             } else {
@@ -2449,6 +2880,7 @@
 
                     if (captured === B_GENERAL || !hasLegalMoves(false, board)) {
                         gameOver = true;
+                        stopGameTimer();
                         statusEl.textContent = '你赢了!';
                         playSound('victory');
                         updateUserStats('win');
@@ -2456,15 +2888,22 @@
                     } else if (isInCheck(false, board)) {
                         playSound('check');
                         currentPlayer = 'black';
+                        // Update timer after player move
+                        redMoveCount++;
+                        resetMoveTimer();
                         setTimeout(makeAIMove, 300);
                     } else {
                         currentPlayer = 'black';
+                        // Update timer after player move
+                        redMoveCount++;
+                        resetMoveTimer();
                         setTimeout(makeAIMove, 300);
                     }
 
                     selectedPiece = null;
                     validMoves = [];
                     updateAIGameUI();
+                    updateTimerDisplay();
                     drawBoard();
                     return;
                 }
@@ -2505,6 +2944,13 @@
                     playSound('victory');
                 }
 
+                // Update move count and timer for online game
+                if (myColor === 'red') {
+                    redMoveCount++;
+                } else {
+                    blackMoveCount++;
+                }
+
                 gameRef.update({
                     board: newBoard,
                     currentPlayer: nextPlayer,
@@ -2513,8 +2959,17 @@
                     lastMoveWasCapture: captured !== EMPTY,
                     inCheck: inCheck,
                     gameOver: isGameOver,
-                    winner: winner
+                    winner: winner,
+                    // Timer data
+                    redTimeRemaining: redTimeRemaining,
+                    blackTimeRemaining: blackTimeRemaining,
+                    redMoveCount: redMoveCount,
+                    blackMoveCount: blackMoveCount,
+                    turnStartTime: Date.now()
                 });
+
+                // Reset local move timer (will be synced from Firebase)
+                resetMoveTimer();
 
                 selectedPiece = null;
                 validMoves = [];
