@@ -910,11 +910,13 @@
             try {
                 // Show loading state
                 const btn = document.querySelector('.btn-guest');
-                const originalText = btn.textContent;
                 btn.textContent = '登录中...';
                 btn.disabled = true;
 
-                await auth.signInAnonymously();
+                console.log('Attempting anonymous sign in...');
+                const result = await auth.signInAnonymously();
+                console.log('Anonymous sign in successful:', result.user.uid);
+                // Button will be hidden when auth state changes and login screen hides
             } catch (error) {
                 console.error('Guest login error:', error);
                 alert('游客登录失败: ' + (error.message || error.code));
@@ -1044,29 +1046,43 @@
         });
 
         auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                currentUser = user;
-                await loadOrCreateUserProfile(user);
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('lobby').style.display = 'block';
-                updateProfileUI();
-                loadLeaderboard();
+            console.log('Auth state changed:', user ? user.uid : 'no user');
+            try {
+                if (user) {
+                    currentUser = user;
+                    console.log('Loading user profile...');
+                    await loadOrCreateUserProfile(user);
+                    console.log('User profile loaded');
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('lobby').style.display = 'block';
+                    updateProfileUI();
+                    loadLeaderboard();
 
-                // Check URL for room ID after login
-                const urlParams = new URLSearchParams(window.location.search);
-                const urlRoomId = urlParams.get('room');
-                if (urlRoomId) {
-                    document.getElementById('joinRoomId').value = urlRoomId;
-                    selectMode('online');
-                    joinGame();
+                    // Check URL for room ID after login
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const urlRoomId = urlParams.get('room');
+                    if (urlRoomId) {
+                        document.getElementById('joinRoomId').value = urlRoomId;
+                        selectMode('online');
+                        joinGame();
+                    }
+                } else {
+                    currentUser = null;
+                    userProfile = null;
+                    document.getElementById('loginScreen').style.display = 'block';
+                    document.getElementById('lobby').style.display = 'none';
+
+                    // Reset guest login button state
+                    const guestBtn = document.querySelector('.btn-guest');
+                    if (guestBtn) {
+                        guestBtn.textContent = '立即开始';
+                        guestBtn.disabled = false;
+                    }
                 }
-            } else {
-                currentUser = null;
-                userProfile = null;
-                document.getElementById('loginScreen').style.display = 'block';
-                document.getElementById('lobby').style.display = 'none';
-
-                // Reset guest login button state
+            } catch (error) {
+                console.error('Error in auth state handler:', error);
+                alert('登录处理出错: ' + error.message);
+                // Reset button on error
                 const guestBtn = document.querySelector('.btn-guest');
                 if (guestBtn) {
                     guestBtn.textContent = '立即开始';
