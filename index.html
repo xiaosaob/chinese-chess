@@ -907,10 +907,22 @@
 
         async function signInAsGuest() {
             try {
+                // Show loading state
+                const btn = document.querySelector('.btn-guest');
+                const originalText = btn.textContent;
+                btn.textContent = '登录中...';
+                btn.disabled = true;
+
                 await auth.signInAnonymously();
             } catch (error) {
                 console.error('Guest login error:', error);
+                alert('游客登录失败: ' + (error.message || error.code));
                 showAuthError('游客登录失败: ' + getErrorMessage(error.code));
+
+                // Reset button
+                const btn = document.querySelector('.btn-guest');
+                btn.textContent = '立即开始';
+                btn.disabled = false;
             }
         }
 
