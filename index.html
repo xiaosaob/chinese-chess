@@ -1106,7 +1106,13 @@
                 '青龙', '白虎', '朱雀', '玄武', '麒麟', '凤凰', '神龙'
             ];
             // Use uid to pick a consistent name for this user
-            const index = parseInt(uid.substring(0, 8), 16) % titles.length;
+            // Sum char codes to get a stable number
+            let hash = 0;
+            for (let i = 0; i < uid.length; i++) {
+                hash = ((hash << 5) - hash) + uid.charCodeAt(i);
+                hash = hash & hash; // Convert to 32bit integer
+            }
+            const index = Math.abs(hash) % titles.length;
             return titles[index];
         }
 
@@ -1115,27 +1121,28 @@
             const snapshot = await userRef.once('value');
 
             // Generate name and avatar for guests/email users
-            const isGuest = user.isAnonymous;
+            const isGuest = user.isAnonymous || false;
             const guestName = generateGuestName(user.uid);
-            const displayName = user.displayName || user.email?.split('@')[0] || guestName;
-            const photoURL = user.photoURL || generateAvatarUrl(displayName);
+            // Ensure displayName is never undefined - use guestName as final fallback
+            const displayName = user.displayName || (user.email ? user.email.split('@')[0] : null) || guestName || '棋手';
+            const photoURL = user.photoURL || generateAvatarUrl(displayName) || 'https://via.placeholder.com/50';
 
             if (snapshot.exists()) {
                 userProfile = snapshot.val();
                 // Keep existing name for guests if already set, otherwise update
-                const updatedName = isGuest && userProfile.displayName ? userProfile.displayName : displayName;
+                const updatedName = (isGuest && userProfile.displayName) ? userProfile.displayName : displayName;
                 await userRef.update({
-                    displayName: updatedName,
-                    photoURL: photoURL,
+                    displayName: updatedName || '棋手',
+                    photoURL: photoURL || 'https://via.placeholder.com/50',
                     isGuest: isGuest
                 });
-                userProfile.displayName = updatedName;
-                userProfile.photoURL = photoURL;
+                userProfile.displayName = updatedName || '棋手';
+                userProfile.photoURL = photoURL || 'https://via.placeholder.com/50';
                 userProfile.isGuest = isGuest;
             } else {
                 userProfile = {
-                    displayName: displayName,
-                    photoURL: photoURL,
+                    displayName: displayName || '棋手',
+                    photoURL: photoURL || 'https://via.placeholder.com/50',
                     wins: 0,
                     losses: 0,
                     draws: 0,
