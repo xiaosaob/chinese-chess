@@ -2503,20 +2503,82 @@
         }
 
         function drawBoard() {
-            ctx.fillStyle = '#e8c373';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Draw outer frame with 3D effect
+            const boardLeft = MARGIN - 15;
+            const boardTop = MARGIN - 15;
+            const boardWidth = 8 * CELL_SIZE + 30;
+            const boardHeight = 9 * CELL_SIZE + 30;
 
-            ctx.strokeStyle = '#5d4037';
+            // Background shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(boardLeft + 8, boardTop + 8, boardWidth, boardHeight);
+
+            // Outer dark frame
+            ctx.fillStyle = '#5d4037';
+            ctx.fillRect(boardLeft, boardTop, boardWidth, boardHeight);
+
+            // Inner raised frame (3D bevel)
+            const frameWidth = 8;
+            ctx.fillStyle = '#8b6914';
+            ctx.fillRect(boardLeft + frameWidth, boardTop + frameWidth, boardWidth - frameWidth * 2, boardHeight - frameWidth * 2);
+
+            // Wood texture gradient for main board
+            const woodGradient = ctx.createLinearGradient(0, boardTop, 0, boardTop + boardHeight);
+            woodGradient.addColorStop(0, '#e8c373');
+            woodGradient.addColorStop(0.3, '#ddb868');
+            woodGradient.addColorStop(0.5, '#e8c373');
+            woodGradient.addColorStop(0.7, '#d4a84b');
+            woodGradient.addColorStop(1, '#e8c373');
+            ctx.fillStyle = woodGradient;
+            ctx.fillRect(MARGIN - 5, MARGIN - 5, 8 * CELL_SIZE + 10, 9 * CELL_SIZE + 10);
+
+            // Add subtle wood grain lines
+            ctx.strokeStyle = 'rgba(139, 90, 43, 0.1)';
             ctx.lineWidth = 1;
+            for (let i = 0; i < 20; i++) {
+                const y = MARGIN - 5 + (i * (9 * CELL_SIZE + 10) / 20);
+                ctx.beginPath();
+                ctx.moveTo(MARGIN - 5, y);
+                ctx.bezierCurveTo(
+                    MARGIN + 2 * CELL_SIZE, y + Math.sin(i) * 3,
+                    MARGIN + 6 * CELL_SIZE, y - Math.sin(i) * 3,
+                    MARGIN + 8 * CELL_SIZE + 5, y
+                );
+                ctx.stroke();
+            }
 
+            // Draw grid lines with slight 3D effect
+            ctx.lineWidth = 1.5;
+
+            // Horizontal lines
             for (let i = 0; i < ROWS; i++) {
+                // Shadow line
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.beginPath();
+                ctx.moveTo(MARGIN, MARGIN + i * CELL_SIZE + 1);
+                ctx.lineTo(MARGIN + 8 * CELL_SIZE, MARGIN + i * CELL_SIZE + 1);
+                ctx.stroke();
+                // Main line
+                ctx.strokeStyle = '#5d4037';
                 ctx.beginPath();
                 ctx.moveTo(MARGIN, MARGIN + i * CELL_SIZE);
                 ctx.lineTo(MARGIN + 8 * CELL_SIZE, MARGIN + i * CELL_SIZE);
                 ctx.stroke();
             }
 
+            // Vertical lines
             for (let j = 0; j < COLS; j++) {
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.beginPath();
+                ctx.moveTo(MARGIN + j * CELL_SIZE + 1, MARGIN);
+                ctx.lineTo(MARGIN + j * CELL_SIZE + 1, MARGIN + 4 * CELL_SIZE);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(MARGIN + j * CELL_SIZE + 1, MARGIN + 5 * CELL_SIZE);
+                ctx.lineTo(MARGIN + j * CELL_SIZE + 1, MARGIN + 9 * CELL_SIZE);
+                ctx.stroke();
+
+                ctx.strokeStyle = '#5d4037';
                 ctx.beginPath();
                 ctx.moveTo(MARGIN + j * CELL_SIZE, MARGIN);
                 ctx.lineTo(MARGIN + j * CELL_SIZE, MARGIN + 4 * CELL_SIZE);
@@ -2527,6 +2589,8 @@
                 ctx.stroke();
             }
 
+            // River border lines
+            ctx.strokeStyle = '#5d4037';
             ctx.beginPath();
             ctx.moveTo(MARGIN, MARGIN + 4 * CELL_SIZE);
             ctx.lineTo(MARGIN, MARGIN + 5 * CELL_SIZE);
@@ -2534,6 +2598,7 @@
             ctx.lineTo(MARGIN + 8 * CELL_SIZE, MARGIN + 5 * CELL_SIZE);
             ctx.stroke();
 
+            // Palace diagonals
             ctx.beginPath();
             ctx.moveTo(MARGIN + 3 * CELL_SIZE, MARGIN);
             ctx.lineTo(MARGIN + 5 * CELL_SIZE, MARGIN + 2 * CELL_SIZE);
@@ -2545,39 +2610,74 @@
             ctx.lineTo(MARGIN + 3 * CELL_SIZE, MARGIN + 9 * CELL_SIZE);
             ctx.stroke();
 
-            ctx.font = '24px serif';
-            ctx.fillStyle = '#5d4037';
+            // River text with shadow
+            ctx.font = 'bold 26px KaiTi, STKaiti, serif';
             ctx.textAlign = 'center';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillText('楚 河', MARGIN + 1.5 * CELL_SIZE + 1, MARGIN + 4.6 * CELL_SIZE + 1);
+            ctx.fillText('汉 界', MARGIN + 6.5 * CELL_SIZE + 1, MARGIN + 4.6 * CELL_SIZE + 1);
+            ctx.fillStyle = '#5d4037';
             ctx.fillText('楚 河', MARGIN + 1.5 * CELL_SIZE, MARGIN + 4.6 * CELL_SIZE);
             ctx.fillText('汉 界', MARGIN + 6.5 * CELL_SIZE, MARGIN + 4.6 * CELL_SIZE);
 
+            // Last move highlights with glow effect
             if (lastMove) {
                 const fromX = MARGIN + lastMove.fromCol * CELL_SIZE;
                 const fromY = MARGIN + lastMove.fromRow * CELL_SIZE;
-                ctx.fillStyle = 'rgba(255, 215, 0, 0.4)';
-                ctx.fillRect(fromX - 28, fromY - 28, 56, 56);
+
+                // Glow effect
+                ctx.shadowColor = 'rgba(255, 215, 0, 0.6)';
+                ctx.shadowBlur = 10;
+                ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+                ctx.fillRect(fromX - 26, fromY - 26, 52, 52);
+                ctx.shadowBlur = 0;
+
                 ctx.strokeStyle = '#ffd700';
                 ctx.lineWidth = 2;
-                ctx.strokeRect(fromX - 28, fromY - 28, 56, 56);
+                ctx.strokeRect(fromX - 26, fromY - 26, 52, 52);
 
                 const toX = MARGIN + lastMove.toCol * CELL_SIZE;
                 const toY = MARGIN + lastMove.toRow * CELL_SIZE;
-                ctx.fillStyle = 'rgba(255, 140, 0, 0.4)';
-                ctx.fillRect(toX - 28, toY - 28, 56, 56);
+
+                ctx.shadowColor = 'rgba(255, 140, 0, 0.6)';
+                ctx.shadowBlur = 10;
+                ctx.fillStyle = 'rgba(255, 140, 0, 0.3)';
+                ctx.fillRect(toX - 26, toY - 26, 52, 52);
+                ctx.shadowBlur = 0;
+
                 ctx.strokeStyle = '#ff8c00';
                 ctx.lineWidth = 2;
-                ctx.strokeRect(toX - 28, toY - 28, 56, 56);
+                ctx.strokeRect(toX - 26, toY - 26, 52, 52);
             }
 
+            // Valid move indicators with 3D dot effect
             validMoves.forEach(move => {
                 const x = MARGIN + move.col * CELL_SIZE;
                 const y = MARGIN + move.row * CELL_SIZE;
+                const isCapture = board[move.row][move.col] !== EMPTY;
+
+                // Shadow
                 ctx.beginPath();
-                ctx.arc(x, y, 8, 0, Math.PI * 2);
-                ctx.fillStyle = board[move.row][move.col] !== EMPTY ? 'rgba(255,0,0,0.5)' : 'rgba(0,128,0,0.5)';
+                ctx.arc(x + 1, y + 1, isCapture ? 12 : 8, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.fill();
+
+                // Main dot with gradient
+                const dotGradient = ctx.createRadialGradient(x - 2, y - 2, 0, x, y, isCapture ? 12 : 8);
+                if (isCapture) {
+                    dotGradient.addColorStop(0, 'rgba(255, 100, 100, 0.8)');
+                    dotGradient.addColorStop(1, 'rgba(200, 0, 0, 0.6)');
+                } else {
+                    dotGradient.addColorStop(0, 'rgba(100, 200, 100, 0.8)');
+                    dotGradient.addColorStop(1, 'rgba(0, 150, 0, 0.6)');
+                }
+                ctx.beginPath();
+                ctx.arc(x, y, isCapture ? 12 : 8, 0, Math.PI * 2);
+                ctx.fillStyle = dotGradient;
                 ctx.fill();
             });
 
+            // Draw all pieces
             for (let row = 0; row < ROWS; row++) {
                 for (let col = 0; col < COLS; col++) {
                     const piece = board[row][col];
@@ -2591,30 +2691,79 @@
         function drawPiece(col, row, piece, selected) {
             const x = MARGIN + col * CELL_SIZE;
             const y = MARGIN + row * CELL_SIZE;
-            const radius = 25;
+            const radius = 24;
 
+            // Piece shadow (offset for 3D effect)
             ctx.beginPath();
-            ctx.arc(x + 2, y + 2, radius, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.arc(x + 3, y + 3, radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
             ctx.fill();
 
-            const gradient = ctx.createRadialGradient(x - 5, y - 5, 0, x, y, radius);
-            gradient.addColorStop(0, '#fff8dc');
-            gradient.addColorStop(1, '#deb887');
+            // Outer ring gradient (darker edge for 3D depth)
+            const outerGradient = ctx.createRadialGradient(x, y, radius - 4, x, y, radius);
+            outerGradient.addColorStop(0, '#c9a227');
+            outerGradient.addColorStop(1, '#8b6914');
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, Math.PI * 2);
-            ctx.fillStyle = gradient;
+            ctx.fillStyle = outerGradient;
             ctx.fill();
 
-            ctx.strokeStyle = selected ? '#00ff00' : '#8b4513';
-            ctx.lineWidth = selected ? 3 : 2;
+            // Main piece body with 3D gradient
+            const bodyGradient = ctx.createRadialGradient(x - 8, y - 8, 0, x, y, radius - 2);
+            bodyGradient.addColorStop(0, '#fffef0');
+            bodyGradient.addColorStop(0.3, '#f5e6c8');
+            bodyGradient.addColorStop(0.7, '#e8d4a8');
+            bodyGradient.addColorStop(1, '#d4b896');
+            ctx.beginPath();
+            ctx.arc(x, y, radius - 3, 0, Math.PI * 2);
+            ctx.fillStyle = bodyGradient;
+            ctx.fill();
+
+            // Inner decorative ring
+            ctx.beginPath();
+            ctx.arc(x, y, radius - 5, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(139, 90, 43, 0.4)';
+            ctx.lineWidth = 1;
             ctx.stroke();
 
-            ctx.font = 'bold 28px serif';
+            // Highlight arc (top-left shine)
+            ctx.beginPath();
+            ctx.arc(x, y, radius - 6, Math.PI * 1.2, Math.PI * 1.8);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Selection glow effect
+            if (selected) {
+                ctx.shadowColor = '#00ff00';
+                ctx.shadowBlur = 15;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            } else {
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.strokeStyle = '#6b4423';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            // Piece text with shadow for depth
+            const textColor = isRed(piece) ? '#b91c1c' : '#1a1a1a';
+            ctx.font = 'bold 26px KaiTi, STKaiti, SimSun, serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillStyle = isRed(piece) ? '#c41e3a' : '#1a1a1a';
-            ctx.fillText(pieceNames[piece], x, y + 2);
+
+            // Text shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillText(pieceNames[piece], x + 1, y + 2);
+
+            // Main text
+            ctx.fillStyle = textColor;
+            ctx.fillText(pieceNames[piece], x, y + 1);
         }
 
         function getValidMoves(row, col, boardState = board) {
