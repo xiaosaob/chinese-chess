@@ -2132,17 +2132,29 @@
                     <img src="${game.redPlayer.photoURL || 'https://via.placeholder.com/24'}" alt="">
                     <span>${game.redPlayer.displayName || '红方'}</span>
                 `;
+            } else {
+                redInfo.innerHTML = `
+                    <img src="https://via.placeholder.com/24" alt="">
+                    <span>等待中...</span>
+                `;
             }
+
             if (game.blackPlayer) {
                 blackInfo.innerHTML = `
                     <img src="${game.blackPlayer.photoURL || 'https://via.placeholder.com/24'}" alt="">
                     <span>${game.blackPlayer.displayName || '黑方'}</span>
                 `;
+            } else {
+                blackInfo.innerHTML = `
+                    <img src="https://via.placeholder.com/24" alt="">
+                    <span>等待中...</span>
+                `;
             }
 
-            // Highlight current player
-            redInfo.classList.toggle('active', game.currentPlayer === 'red' && !game.gameOver);
-            blackInfo.classList.toggle('active', game.currentPlayer === 'black' && !game.gameOver);
+            // Highlight current player only when both players present
+            const bothPlayersPresent = game.redPlayer && game.blackPlayer;
+            redInfo.classList.toggle('active', bothPlayersPresent && game.currentPlayer === 'red' && !game.gameOver);
+            blackInfo.classList.toggle('active', bothPlayersPresent && game.currentPlayer === 'black' && !game.gameOver);
         }
 
         function setupGameListeners() {
@@ -2163,19 +2175,27 @@
                 gameOver = game.gameOver;
 
                 // Sync timer data from Firebase
+                const bothPlayersPresent = game.redPlayer && game.blackPlayer;
+
                 if (game.timeControl !== undefined) {
                     redTimeRemaining = game.redTimeRemaining || game.timeControl * 60 * 1000;
                     blackTimeRemaining = game.blackTimeRemaining || game.timeControl * 60 * 1000;
                     redMoveCount = game.redMoveCount || 0;
                     blackMoveCount = game.blackMoveCount || 0;
 
-                    // Initialize timer on first load
-                    if (!timerInitialized && !gameOver) {
+                    // Initialize timer on first load - ONLY when both players are present
+                    if (!timerInitialized && !gameOver && bothPlayersPresent) {
                         timerInitialized = true;
                         selectedTimeControl = game.timeControl;
                         currentMoveStartTime = game.turnStartTime || Date.now();
                         moveTimeLimit = getMoveTimeLimit(currentPlayer === 'red' ? redMoveCount : blackMoveCount);
                         lastTimerUpdate = Date.now();
+
+                        // Set turnStartTime if not set (game just started)
+                        if (!game.turnStartTime) {
+                            gameRef.update({ turnStartTime: Date.now() });
+                        }
+
                         startGameTimer();
                     }
 
@@ -2185,7 +2205,10 @@
                         moveTimeLimit = getMoveTimeLimit(currentPlayer === 'red' ? redMoveCount : blackMoveCount);
                     }
 
-                    updateTimerDisplay();
+                    // Only update timer display when both players present
+                    if (bothPlayersPresent) {
+                        updateTimerDisplay();
+                    }
                 }
 
                 updatePlayerInfoUI(game);
@@ -2256,10 +2279,16 @@
                             }
                         }
                     }
+                } else if (!bothPlayersPresent) {
+                    // Waiting for opponent to join
+                    statusEl.textContent = '等待对手加入...';
+                    document.getElementById('gameTimers').style.opacity = '0.3';
                 } else if (currentPlayer === myColor) {
                     statusEl.textContent = '轮到你走棋';
+                    document.getElementById('gameTimers').style.opacity = '1';
                 } else {
                     statusEl.textContent = '等待对手...';
+                    document.getElementById('gameTimers').style.opacity = '1';
                 }
 
                 // Handle rematch request
