@@ -2312,78 +2312,101 @@
         const ctx = canvas.getContext('2d');
         const statusEl = document.getElementById('status');
 
-        // Sound system
+        // Sound system - soft, pleasant sounds
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         let soundEnabled = true;
+
+        // Create a soft sound with optional harmonics
+        function createSoftTone(freq, duration, volume = 0.15, type = 'sine') {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            const filter = audioCtx.createBiquadFilter();
+
+            // Low-pass filter to soften the sound
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(1500, audioCtx.currentTime);
+            filter.Q.setValueAtTime(0.5, audioCtx.currentTime);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            osc.type = type;
+
+            // Soft attack and decay envelope
+            gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(volume, audioCtx.currentTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+            osc.start(audioCtx.currentTime);
+            osc.stop(audioCtx.currentTime + duration);
+
+            return { osc, gain, filter };
+        }
 
         function playSound(type) {
             if (!soundEnabled) return;
             if (audioCtx.state === 'suspended') audioCtx.resume();
 
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-
             switch (type) {
                 case 'select':
-                    oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
-                    oscillator.type = 'sine';
-                    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-                    oscillator.start(audioCtx.currentTime);
-                    oscillator.stop(audioCtx.currentTime + 0.1);
+                    // Soft click - gentle high note
+                    createSoftTone(440, 0.12, 0.1, 'sine');
                     break;
+
                 case 'move':
-                    oscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
-                    oscillator.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.1);
-                    oscillator.type = 'triangle';
-                    gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-                    oscillator.start(audioCtx.currentTime);
-                    oscillator.stop(audioCtx.currentTime + 0.15);
+                    // Soft wooden tap sound - two quick tones
+                    createSoftTone(220, 0.15, 0.12, 'triangle');
+                    setTimeout(() => createSoftTone(180, 0.1, 0.08, 'sine'), 30);
                     break;
+
                 case 'capture':
-                    oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
-                    oscillator.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.2);
-                    oscillator.type = 'sawtooth';
-                    gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
-                    oscillator.start(audioCtx.currentTime);
-                    oscillator.stop(audioCtx.currentTime + 0.25);
+                    // Slightly deeper, richer capture sound
+                    createSoftTone(165, 0.25, 0.15, 'triangle');
+                    createSoftTone(110, 0.3, 0.1, 'sine');
                     break;
+
                 case 'check':
-                    oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
-                    oscillator.frequency.setValueAtTime(800, audioCtx.currentTime + 0.1);
-                    oscillator.frequency.setValueAtTime(600, audioCtx.currentTime + 0.2);
-                    oscillator.type = 'square';
-                    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
-                    oscillator.start(audioCtx.currentTime);
-                    oscillator.stop(audioCtx.currentTime + 0.35);
+                    // Gentle alert - two ascending notes
+                    createSoftTone(330, 0.2, 0.12, 'sine');
+                    setTimeout(() => createSoftTone(440, 0.25, 0.1, 'sine'), 150);
                     break;
+
                 case 'victory':
-                    [523, 659, 784, 1047].forEach((freq, i) => {
-                        const osc = audioCtx.createOscillator();
-                        const gain = audioCtx.createGain();
-                        osc.connect(gain);
-                        gain.connect(audioCtx.destination);
-                        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.15);
-                        osc.type = 'sine';
-                        gain.gain.setValueAtTime(0.3, audioCtx.currentTime + i * 0.15);
-                        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.15 + 0.3);
-                        osc.start(audioCtx.currentTime + i * 0.15);
-                        osc.stop(audioCtx.currentTime + i * 0.15 + 0.3);
+                    // Pleasant ascending arpeggio (C-E-G-C)
+                    const victoryNotes = [262, 330, 392, 523];
+                    victoryNotes.forEach((freq, i) => {
+                        setTimeout(() => {
+                            createSoftTone(freq, 0.4, 0.12, 'sine');
+                            createSoftTone(freq * 2, 0.35, 0.05, 'sine'); // Soft octave
+                        }, i * 180);
                     });
-                    return;
+                    break;
+
                 case 'defeat':
-                    oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
-                    oscillator.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.5);
-                    oscillator.type = 'sine';
-                    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
-                    oscillator.start(audioCtx.currentTime);
-                    oscillator.stop(audioCtx.currentTime + 0.6);
+                    // Gentle descending tone
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    const filter = audioCtx.createBiquadFilter();
+
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(800, audioCtx.currentTime);
+
+                    osc.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc.frequency.setValueAtTime(330, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(165, audioCtx.currentTime + 0.6);
+                    osc.type = 'sine';
+
+                    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.7);
+
+                    osc.start(audioCtx.currentTime);
+                    osc.stop(audioCtx.currentTime + 0.7);
                     break;
             }
         }
