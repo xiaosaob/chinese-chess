@@ -810,6 +810,7 @@
                 <canvas id="board" width="520" height="580"></canvas>
             </div>
             <div class="controls">
+                <button onclick="requestUndo()" id="undoBtn">悔棋</button>
                 <button onclick="requestRematch()" id="rematchBtn" style="display:none;">再来一局</button>
                 <button onclick="leaveGame()">离开游戏</button>
                 <button id="soundBtn" onclick="toggleSound()">关闭音效</button>
@@ -1687,6 +1688,9 @@
                 const result = minimax(boardCopy, aiDepth, -Infinity, Infinity, true);
 
                 if (result.move) {
+                    // Save state before AI move for undo
+                    saveToHistory();
+
                     const captured = board[result.move.toRow][result.move.toCol];
                     makeMoveOnBoard(result.move.fromRow, result.move.fromCol, result.move.toRow, result.move.toCol, board);
 
@@ -2091,10 +2095,35 @@
                             blackMoveCount: 0,
                             turnStartTime: Date.now(),
                             timeoutPlayer: null,
-                            moveTimeoutPlayer: null
+                            moveTimeoutPlayer: null,
+                            previousBoard: null,
+                            previousState: null,
+                            undoRequest: null
                         });
                         document.getElementById('rematchBtn').style.display = 'none';
                         timerInitialized = false;
+                    }
+                }
+
+                // Handle undo request
+                if (game.undoRequest && game.undoRequest !== myColor && game.previousState) {
+                    if (confirm('对手请求悔棋，是否同意？')) {
+                        const prevState = game.previousState;
+                        gameRef.update({
+                            board: prevState.board,
+                            currentPlayer: prevState.currentPlayer,
+                            lastMove: prevState.lastMove,
+                            redMoveCount: prevState.redMoveCount,
+                            blackMoveCount: prevState.blackMoveCount,
+                            redTimeRemaining: prevState.redTimeRemaining,
+                            blackTimeRemaining: prevState.blackTimeRemaining,
+                            turnStartTime: Date.now(),
+                            undoRequest: null,
+                            previousState: null
+                        });
+                    } else {
+                        // Declined - clear the request
+                        gameRef.update({ undoRequest: null });
                     }
                 }
 
@@ -2153,6 +2182,7 @@
                 selectedPiece = null;
                 validMoves = [];
                 lastMove = null;
+                moveHistory = []; // Clear move history
                 initBoard();
                 document.getElementById('rematchBtn').style.display = 'none';
 
@@ -2164,6 +2194,69 @@
             } else {
                 gameRef.update({ rematchRequest: myColor });
                 alert('已发送再来一局请求，等待对手确认...');
+            }
+        }
+
+        // Move history for undo feature
+        let moveHistory = [];
+
+        function saveToHistory() {
+            moveHistory.push({
+                board: board.map(row => [...row]),
+                currentPlayer: currentPlayer,
+                lastMove: lastMove ? { ...lastMove } : null,
+                redMoveCount: redMoveCount,
+                blackMoveCount: blackMoveCount,
+                redTimeRemaining: redTimeRemaining,
+                blackTimeRemaining: blackTimeRemaining
+            });
+            // Keep only last 10 moves to save memory
+            if (moveHistory.length > 10) {
+                moveHistory.shift();
+            }
+        }
+
+        function requestUndo() {
+            if (gameOver) {
+                alert('游戏已结束，无法悔棋');
+                return;
+            }
+
+            if (isAIGame) {
+                // AI game - undo immediately (undo both player and AI moves)
+                if (moveHistory.length < 2) {
+                    alert('没有可以撤销的步骤');
+                    return;
+                }
+
+                // Undo AI's move and player's move
+                moveHistory.pop(); // Remove AI's last move
+                const prevState = moveHistory.pop(); // Get state before player's move
+
+                board = prevState.board;
+                currentPlayer = prevState.currentPlayer;
+                lastMove = prevState.lastMove;
+                redMoveCount = prevState.redMoveCount;
+                blackMoveCount = prevState.blackMoveCount;
+                redTimeRemaining = prevState.redTimeRemaining;
+                blackTimeRemaining = prevState.blackTimeRemaining;
+
+                selectedPiece = null;
+                validMoves = [];
+
+                updateTimerDisplay();
+                updateAIGameUI();
+                drawBoard();
+                playSound('move');
+            } else {
+                // Online game - request undo from opponent
+                // Can only request undo when it's opponent's turn (after you made a move)
+                if (currentPlayer === myColor) {
+                    alert('只能在对手回合时请求悔棋');
+                    return;
+                }
+                gameRef.update({ undoRequest: myColor });
+                alert('已发送悔棋请求，等待对手确认...');
             }
         }
 
@@ -2679,6 +2772,9 @@
                 const captured = board[row][col];
 
                 if (isAIGame) {
+                    // Save state before move for undo
+                    saveToHistory();
+
                     // AI game - update local state
                     makeMoveOnBoard(selectedPiece.row, selectedPiece.col, row, col, board);
 
@@ -2761,6 +2857,17 @@
                     playSound('victory');
                 }
 
+                // Save current state for undo before updating
+                const previousState = {
+                    board: board.map(r => [...r]),
+                    currentPlayer: currentPlayer,
+                    lastMove: lastMove,
+                    redMoveCount: redMoveCount,
+                    blackMoveCount: blackMoveCount,
+                    redTimeRemaining: redTimeRemaining,
+                    blackTimeRemaining: blackTimeRemaining
+                };
+
                 // Update move count and timer for online game
                 if (myColor === 'red') {
                     redMoveCount++;
@@ -2782,7 +2889,10 @@
                     blackTimeRemaining: blackTimeRemaining,
                     redMoveCount: redMoveCount,
                     blackMoveCount: blackMoveCount,
-                    turnStartTime: Date.now()
+                    turnStartTime: Date.now(),
+                    // Save previous state for undo
+                    previousState: previousState,
+                    undoRequest: null
                 });
 
                 // Reset local move timer (will be synced from Firebase)
