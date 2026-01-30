@@ -847,19 +847,6 @@
                     <button onclick="joinGame()">加入游戏</button>
                 </div>
 
-                <div id="waitingSection" style="display: none;">
-                    <p class="waiting">等待对手加入...</p>
-                    <p style="color: #f39c12; font-size: 14px; margin-bottom: 10px;">
-                        ⏱️ 房间将在 <span id="waitingCountdown">10:00</span> 后自动关闭
-                    </p>
-                    <div class="share-link">
-                        <p style="color: #888; font-size: 14px;">分享此链接给朋友:</p>
-                        <a id="shareLink" href="#" target="_blank"></a>
-                    </div>
-                    <button class="copy-btn" onclick="copyLink()">复制链接</button>
-                    <p style="margin-top: 15px; color: #888; font-size: 14px;">房间号: <span id="roomIdDisplay"></span></p>
-                    <button style="margin-top: 15px; background: #666;" onclick="cancelWaiting()">取消</button>
-                </div>
             </div>
 
             <!-- Leaderboard Tab -->
@@ -899,6 +886,15 @@
                 </div>
             </div>
             <div class="status" id="status">红方先行</div>
+            <!-- Share link section (shown when waiting for opponent) -->
+            <div class="share-section" id="shareSection" style="display: none;">
+                <div class="share-link">
+                    <p style="color: #888; font-size: 14px; margin-bottom: 5px;">分享链接给朋友:</p>
+                    <a id="gameShareLink" href="#" target="_blank" style="font-size: 12px;"></a>
+                </div>
+                <button class="copy-btn" onclick="copyGameLink()" style="margin-top: 8px; padding: 8px 15px; font-size: 14px;">复制链接</button>
+                <p style="margin-top: 8px; color: #888; font-size: 12px;">房间号: <span id="gameRoomId"></span></p>
+            </div>
             <div class="board-container">
                 <canvas id="board" width="520" height="580"></canvas>
             </div>
@@ -1495,17 +1491,6 @@
             });
         }
 
-        function cancelWaiting() {
-            clearWaitingTimers();
-            if (gameRef) {
-                gameRef.off();
-                gameRef.remove();
-            }
-            document.getElementById('createSection').style.display = 'block';
-            document.getElementById('waitingSection').style.display = 'none';
-            loadOpenGames();
-        }
-
         // ============================================
         // TIME CONTROL
         // ============================================
@@ -1956,9 +1941,6 @@
         // ============================================
         // ONLINE GAME LOGIC
         // ============================================
-        let waitingTimer = null;
-        let waitingCountdownInterval = null;
-
         function generateRoomId() {
             return Math.random().toString(36).substring(2, 8).toUpperCase();
         }
@@ -2002,79 +1984,33 @@
             };
 
             gameRef.set(initialState).then(() => {
-                document.getElementById('createSection').style.display = 'none';
-                document.getElementById('waitingSection').style.display = 'block';
+                // Go directly to game area
+                gameStarted = true;
+                document.getElementById('lobby').style.display = 'none';
+                document.getElementById('gameArea').style.display = 'block';
 
+                // Show share link section
                 const shareUrl = window.location.origin + window.location.pathname + '?room=' + roomId;
-                document.getElementById('shareLink').href = shareUrl;
-                document.getElementById('shareLink').textContent = shareUrl;
-                document.getElementById('roomIdDisplay').textContent = roomId;
+                document.getElementById('gameShareLink').href = shareUrl;
+                document.getElementById('gameShareLink').textContent = shareUrl;
+                document.getElementById('gameRoomId').textContent = roomId;
+                document.getElementById('shareSection').style.display = 'block';
 
-                // Start countdown timer
-                startWaitingCountdown();
+                // Set up player info (red player is current user, black is waiting)
+                document.getElementById('redPlayerInfo').innerHTML = `
+                    <img src="${userProfile.photoURL || 'https://via.placeholder.com/24'}" alt="">
+                    <span>${userProfile.displayName || '红方'}</span>
+                `;
+                document.getElementById('blackPlayerInfo').innerHTML = `
+                    <img src="https://via.placeholder.com/24" alt="">
+                    <span>等待中...</span>
+                `;
 
-                // Listen for opponent joining
-                gameRef.child('blackPlayer').on('value', (snapshot) => {
-                    if (snapshot.val()) {
-                        // Clear timers
-                        clearWaitingTimers();
-                        opponentProfile = snapshot.val();
-                        startGame();
-                    }
-                });
+                initBoard();
+                setupGameListeners();
+                resizeCanvas();
+                drawBoard();
             });
-        }
-
-        function startWaitingCountdown() {
-            const startTime = Date.now();
-            const endTime = startTime + GAME_TIMEOUT_MS;
-
-            updateCountdownDisplay(GAME_TIMEOUT_MS);
-
-            waitingCountdownInterval = setInterval(() => {
-                const remaining = endTime - Date.now();
-                if (remaining <= 0) {
-                    clearWaitingTimers();
-                    autoCloseGame();
-                } else {
-                    updateCountdownDisplay(remaining);
-                }
-            }, 1000);
-        }
-
-        function updateCountdownDisplay(ms) {
-            const totalSeconds = Math.floor(ms / 1000);
-            const minutes = Math.floor(totalSeconds / 60);
-            const seconds = totalSeconds % 60;
-            const display = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-            const countdownEl = document.getElementById('waitingCountdown');
-            if (countdownEl) {
-                countdownEl.textContent = display;
-                // Change color when less than 2 minutes
-                countdownEl.style.color = totalSeconds < 120 ? '#e74c3c' : 'inherit';
-            }
-        }
-
-        function clearWaitingTimers() {
-            if (waitingTimer) {
-                clearTimeout(waitingTimer);
-                waitingTimer = null;
-            }
-            if (waitingCountdownInterval) {
-                clearInterval(waitingCountdownInterval);
-                waitingCountdownInterval = null;
-            }
-        }
-
-        function autoCloseGame() {
-            if (gameRef) {
-                gameRef.off();
-                gameRef.remove();
-            }
-            alert('等待超时，房间已自动关闭');
-            document.getElementById('createSection').style.display = 'block';
-            document.getElementById('waitingSection').style.display = 'none';
-            loadOpenGames();
         }
 
         function joinGame() {
@@ -2105,25 +2041,13 @@
                     if (game.blackPlayer) {
                         // Game already has opponent, resume game
                         opponentProfile = game.blackPlayer;
-                        startGame();
-                    } else {
-                        // Still waiting for opponent, show waiting section
-                        document.getElementById('createSection').style.display = 'none';
-                        document.getElementById('waitingSection').style.display = 'block';
-                        const shareUrl = window.location.origin + window.location.pathname + '?room=' + roomId;
-                        document.getElementById('shareLink').href = shareUrl;
-                        document.getElementById('shareLink').textContent = shareUrl;
-                        document.getElementById('roomIdDisplay').textContent = roomId;
-                        startWaitingCountdown();
-                        // Listen for opponent joining
-                        gameRef.child('blackPlayer').on('value', (snapshot) => {
-                            if (snapshot.val()) {
-                                clearWaitingTimers();
-                                opponentProfile = snapshot.val();
-                                startGame();
-                            }
-                        });
                     }
+                    // Show game area (with share link if waiting for opponent)
+                    const shareUrl = window.location.origin + window.location.pathname + '?room=' + roomId;
+                    document.getElementById('gameShareLink').href = shareUrl;
+                    document.getElementById('gameShareLink').textContent = shareUrl;
+                    document.getElementById('gameRoomId').textContent = roomId;
+                    startGame();
                     return;
                 }
 
@@ -2328,12 +2252,15 @@
                     // Waiting for opponent to join
                     statusEl.textContent = '等待对手加入...';
                     document.getElementById('gameTimers').style.opacity = '0.3';
+                    document.getElementById('shareSection').style.display = 'block';
                 } else if (currentPlayer === myColor) {
                     statusEl.textContent = '轮到你走棋';
                     document.getElementById('gameTimers').style.opacity = '1';
+                    document.getElementById('shareSection').style.display = 'none';
                 } else {
                     statusEl.textContent = '等待对手...';
                     document.getElementById('gameTimers').style.opacity = '1';
+                    document.getElementById('shareSection').style.display = 'none';
                 }
 
                 // Handle rematch request
@@ -2398,12 +2325,12 @@
             blackMoveCount = 0;
 
             document.getElementById('rematchBtn').style.display = 'none';
+            document.getElementById('shareSection').style.display = 'none';
             document.getElementById('gameArea').style.display = 'none';
             document.getElementById('lobby').style.display = 'block';
 
             // Show appropriate section based on selected mode
             selectMode(selectedGameMode);
-            document.getElementById('waitingSection').style.display = 'none';
 
             // Reload open games list
             if (selectedGameMode === 'online') {
@@ -2438,6 +2365,13 @@
 
         function copyLink() {
             const link = document.getElementById('shareLink').href;
+            navigator.clipboard.writeText(link).then(() => {
+                alert('链接已复制!');
+            });
+        }
+
+        function copyGameLink() {
+            const link = document.getElementById('gameShareLink').href;
             navigator.clipboard.writeText(link).then(() => {
                 alert('链接已复制!');
             });
