@@ -783,7 +783,7 @@
             <div id="playTab">
                 <!-- Mode Selection -->
                 <div class="mode-selection" id="modeSelection">
-                    <div class="mode-card selected" onclick="selectMode('ai')" id="modeAI">
+                    <div class="mode-card" onclick="selectMode('ai')" id="modeAI">
                         <div class="icon">🤖</div>
                         <div class="title">人机对战</div>
                         <div class="desc">与AI对弈</div>
@@ -795,8 +795,8 @@
                     </div>
                 </div>
 
-                <!-- AI Mode Options -->
-                <div class="difficulty-select show" id="aiOptions">
+                <!-- AI Mode Options (hidden by default) -->
+                <div class="difficulty-select" id="aiOptions" style="display: none;">
                     <label>难度:</label>
                     <select id="aiDifficulty">
                         <option value="2">简单</option>
@@ -811,14 +811,10 @@
                             <div class="time-option" onclick="selectAITimeControl(20)">20分钟</div>
                         </div>
                     </div>
+                    <button onclick="startAIGame()" style="margin-top: 15px;">开始游戏</button>
                 </div>
 
-                <!-- Start AI Game Button -->
-                <div id="aiSection">
-                    <button onclick="startAIGame()">开始游戏</button>
-                </div>
-
-                <!-- Online Mode Options -->
+                <!-- Online Mode Options (hidden by default) -->
                 <div id="createSection" style="display: none;">
                     <div class="time-control">
                         <label>选择时间限制 (每方总用时)</label>
@@ -828,7 +824,7 @@
                             <div class="time-option" onclick="selectTimeControl(20)">20分钟</div>
                         </div>
                     </div>
-                    <button onclick="createGame()">创建新游戏</button>
+                    <button onclick="createGame()" style="margin-top: 15px;">创建新游戏</button>
 
                     <!-- Open Games List -->
                     <div class="open-games" id="openGames">
@@ -1322,7 +1318,7 @@
         // ============================================
         // UI HELPERS
         // ============================================
-        let selectedGameMode = 'ai';
+        let selectedGameMode = null; // No mode selected by default
 
         function showTab(tab) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -1338,11 +1334,14 @@
             document.getElementById('modeAI').classList.toggle('selected', mode === 'ai');
             document.getElementById('modeOnline').classList.toggle('selected', mode === 'online');
 
-            document.getElementById('aiOptions').classList.toggle('show', mode === 'ai');
-            document.getElementById('aiSection').style.display = mode === 'ai' ? 'block' : 'none';
-            document.getElementById('createSection').style.display = mode === 'online' ? 'block' : 'none';
+            // Hide both sections first, then show the selected one
+            document.getElementById('aiOptions').style.display = 'none';
+            document.getElementById('createSection').style.display = 'none';
 
-            if (mode === 'online') {
+            if (mode === 'ai') {
+                document.getElementById('aiOptions').style.display = 'block';
+            } else if (mode === 'online') {
+                document.getElementById('createSection').style.display = 'block';
                 loadOpenGames();
             }
         }
