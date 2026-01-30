@@ -1065,6 +1065,13 @@
                 userProfile = null;
                 document.getElementById('loginScreen').style.display = 'block';
                 document.getElementById('lobby').style.display = 'none';
+
+                // Reset guest login button state
+                const guestBtn = document.querySelector('.btn-guest');
+                if (guestBtn) {
+                    guestBtn.textContent = '立即开始';
+                    guestBtn.disabled = false;
+                }
             }
         });
 
